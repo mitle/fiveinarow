@@ -4,6 +4,8 @@ The well known five in a row game implemented in python using pygame. 2 players 
 
 ## Install:
 
+Python3 required.
+
 clone and run client.py/server.py
 
 #### Required packages
