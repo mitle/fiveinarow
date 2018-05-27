@@ -92,6 +92,11 @@ player2 = Player("Levi", "white")
 print(player1.name)
 
 
+token = f.encrypt(pickle.dumps(player2))
+print("sending player: " + player2.name)
+socket.send(token)
+
+
 
 while not done:
     screen.fill((42, 42, 42))
@@ -102,6 +107,12 @@ while not done:
     if pygame.key.get_pressed()[pygame.K_SPACE]:
         pygame.draw.rect(screen, (255, 0, 0), pygame.Rect(100, 100, 10, 60))
     pygame.draw.rect(screen, (0, 128, 255), pygame.Rect(30, 30, 60, 60))
+
+    txt_surface = font.render("player1: " + player1.name, True, pygame.Color('red'))
+    screen.blit(txt_surface, (150, 150))
+
+    txt_surface = font.render("you    : " + player2.name, True, pygame.Color('red'))
+    screen.blit(txt_surface, (150, 200))
 
     pygame.display.flip()
     clock.tick(25)
