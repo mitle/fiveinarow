@@ -1,4 +1,4 @@
 {
-    "n_to_win": 4,
+    "n_to_win": 5,
     "numgrid": 20
 }
