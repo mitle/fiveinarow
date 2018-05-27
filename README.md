@@ -1,7 +1,17 @@
-# Five in a row, Gomoku game
+# Five in a row, Gomoku game in python
 
+The well known five in a row game implemented in python using pygame. 2 players play the game, the game instances are connected by network using ZeroMQ.
 
 ## Install:
+
+clone and run client.py/server.py
+
+#### Required packages
+
+* zmq
+* cryptography
+* rsa
+* pygame
 
 
 ## Documentation:
