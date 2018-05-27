@@ -3,6 +3,10 @@ import json
 import zmq
 import time
 import fir
+from cryptography.fernet import Fernet
+import pickle
+import rsa
+
 
 config_file_name = 'config.txt'
 conf = dict()
@@ -92,7 +96,8 @@ socket = context.socket(zmq.PAIR)
 server_addr = "tcp://{ip}:{port}".format(ip=ip_text, port=port)
 socket.connect(server_addr)
 
-
+# send hello to the server
+socket.send_string("hello_fir_server")
 
 class Player():
     def __init__(self, name, color):
@@ -103,15 +108,13 @@ class Player():
         self.last_move = None
 
 #get asymmetric keys
-import rsa
 #(pubkey, privkey) = rsa.newkeys(1024)
-
 start = time.time()
-timeout_sec = 15
+timeout_sec = 20
 graceful = False
 while time.time() - start < timeout_sec:
     try:
-        pubkey = socket.recv_string(flags=zmq.NOBLOCK)
+        pubkey = socket.recv_pyobj(flags=zmq.NOBLOCK)
         graceful = True
         break
     except zmq.Again as e:
@@ -121,16 +124,17 @@ if not graceful:
     raise fir.Timeout
 
 #gen sym auth
-from cryptography.fernet import Fernet
-import pickle
 key = Fernet.generate_key()
 f = Fernet(key)
 
-crypto = rsa.encrypt(key, pubkey)
+encrypted_key = rsa.encrypt(key, pubkey)
+
+socket.send(encrypted_key)
 
 player1 = Player("Kata", "black")
 token = f.encrypt(pickle.dumps(player1))
-socket.send_string(token)
+print("sending player: " + player1.name)
+socket.send(token)
 
 #f.decrypt(token)
 

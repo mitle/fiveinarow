@@ -1,7 +1,11 @@
-
 import pygame
 import json
 import zmq
+import time
+import fir
+from cryptography.fernet import Fernet
+import pickle
+import rsa
 
 pygame.init()
 clock = pygame.time.Clock()
@@ -36,7 +40,11 @@ while not done and not is_connected:
 
     try:
         msg = socket.recv(flags=zmq.NOBLOCK)
-        print(msg)
+        if msg == b"hello_fir_server":
+            print("Incoming connection")
+            is_connected = True
+        else:
+            print("header mismatch: " + msg)
     except zmq.Again as e:
         pass
 
@@ -44,6 +52,46 @@ while not done and not is_connected:
 
     pygame.display.flip()
     clock.tick(25)
+
+(pubkey, privkey) = rsa.newkeys(1024)
+socket.send_pyobj(pubkey)
+
+class Player():
+    def __init__(self, name, color):
+        self.name = name
+        self.color = color
+        self.turn = None
+        self.points = 0
+        self.last_move = None
+
+
+#get sym auth
+start = time.time()
+timeout_sec = 15
+graceful = False
+while time.time() - start < timeout_sec:
+    try:
+        encrypted_key = socket.recv(flags=zmq.NOBLOCK)
+        graceful = True
+        break
+    except zmq.Again as e:
+        time.sleep(.2)
+if not graceful:
+    print("Connection timed out!")
+    raise fir.Timeout
+
+key = rsa.decrypt(encrypted_key, privkey)
+f = Fernet(key)
+
+enc_msg = socket.recv()
+pickeled_player = f.decrypt(enc_msg)
+player1 = pickle.loads(pickeled_player)
+
+player2 = Player("Levi", "white")
+
+print(player1.name)
+
+
 
 while not done:
     screen.fill((42, 42, 42))
