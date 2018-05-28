@@ -179,37 +179,63 @@ enc_msg = socket.recv()
 pickeled_player = f.decrypt(enc_msg)
 player2 = pickle.loads(pickeled_player)
 
+class Grid():
+    def __init__(self, screen, conf):
+        self.screen = screen
+        self.conf = conf
+        self.__update_conf()
 
-def draw_grid():
-    gridcolor = conf['gridcolor']
-    row = conf['numgridy']
-    col = conf['numgridx']
-    xboundary = 30
-    yboundary = 30
-    screen_width, screen_height = pygame.display.get_surface().get_size()
-    grid_height = screen_height - 2 * yboundary
-    grid_width = screen_width - 2 * xboundary
+    def set_anim_speed(self, speed=20):
+        self.anim_sleep = 1/speed
 
-    if grid_width < grid_height:
-        yboundary += (screen_height - screen_width) / 2
-        grid_height = grid_width
+    def __update_conf(self):
+        self.gridcolor = self.conf['gridcolor']
+        self.cols = conf['numgridx']
+        self.rows = conf['numgridy']
+        self.bold_grid = conf['bold_grid']
 
-    elif grid_width > screen_height:
-        xboundary += (screen_width - screen_height) / 2
-        grid_width = grid_height
+        self.xboundary = 30
+        self.yboundary = 30
+        screen_width, screen_height = pygame.display.get_surface().get_size()
+        self.grid_height = screen_height - 2 * self.yboundary
+        self.grid_width = screen_width - 2 * self.xboundary
 
-    width = 2 if conf['bold_grid'] else 1
-    for r in range(row + 1):
-        pos_y = (grid_height / row) * r + yboundary
-        pos_x_start = xboundary
-        pos_x_end = screen_width - xboundary
-        pygame.draw.line(screen, gridcolor, (pos_x_start, pos_y), (pos_x_end, pos_y), width)
-    for c in range(col + 1):
-        pos_x = (grid_width / col) * c + xboundary
-        pos_y_start = yboundary
-        pos_y_end = screen_height - yboundary
-        pygame.draw.line(screen, gridcolor, (pos_x, pos_y_start), (pos_x, pos_y_end), width)
+        if self.grid_width < self.grid_height:
+            self.yboundary += (screen_height - screen_width) / 2
+            self.grid_height = self.grid_width
 
+        elif self.grid_width > screen_height:
+            self.xboundary += (screen_width - screen_height) / 2
+            self.grid_width = self.grid_height
+
+        self.width = 2 if self.bold_grid else 1
+
+    def draw(self, flush=False, animate=False):
+        screen_width, screen_height = pygame.display.get_surface().get_size()
+        for r in range(self.rows + 1):
+            pos_y = (self.grid_height / self.rows) * r + self.yboundary
+            pos_x_start = self.xboundary
+            pos_x_end = screen_width - self.xboundary
+            pygame.draw.line(self.screen, self.gridcolor, (pos_x_start, pos_y), (pos_x_end, pos_y), self.width)
+            if animate:
+                pygame.display.flip()
+                time.sleep(self.anim_sleep)
+        for c in range(self.cols + 1):
+            pos_x = (self.grid_width / self.cols) * c + self.xboundary
+            pos_y_start = self.yboundary
+            pos_y_end = screen_height - self.yboundary
+            pygame.draw.line(self.screen, self.gridcolor, (pos_x, pos_y_start), (pos_x, pos_y_end), self.width)
+            if animate:
+                pygame.display.flip()
+                time.sleep(self.anim_sleep)
+
+        if flush:
+            pygame.display.flip()
+
+
+grid = Grid(screen, conf)
+grid.set_anim_speed()
+grid.draw(animate=True)
 
 while not done:
     screen.fill(conf['bgcolor'])
@@ -227,7 +253,7 @@ while not done:
     txt_surface = font.render("player2: " + player2.name, True, pygame.Color('red'))
     screen.blit(txt_surface, (150, 200))
 
-    draw_grid()
+    grid.draw()
 
     pygame.display.flip()
     clock.tick(25)
