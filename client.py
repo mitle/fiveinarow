@@ -184,8 +184,9 @@ class Grid():
         self.screen = screen
         self.conf = conf
         self.__update_conf()
+        self.anim_sleep = 1/20
 
-    def set_anim_speed(self, speed=20):
+    def set_anim_speed(self, speed):
         self.anim_sleep = 1/speed
 
     def __update_conf(self):
@@ -196,7 +197,7 @@ class Grid():
 
         self.xboundary = 30
         self.yboundary = 30
-        screen_width, screen_height = pygame.display.get_surface().get_size()
+        screen_width, screen_height = self.screen.get_size()
         self.grid_height = screen_height - 2 * self.yboundary
         self.grid_width = screen_width - 2 * self.xboundary
 
@@ -211,7 +212,7 @@ class Grid():
         self.width = 2 if self.bold_grid else 1
 
     def draw(self, flush=False, animate=False):
-        screen_width, screen_height = pygame.display.get_surface().get_size()
+        screen_width, screen_height = self.screen.get_size()
         for r in range(self.rows + 1):
             pos_y = (self.grid_height / self.rows) * r + self.yboundary
             pos_x_start = self.xboundary
@@ -234,7 +235,6 @@ class Grid():
 
 
 grid = Grid(screen, conf)
-grid.set_anim_speed()
 grid.draw(animate=True)
 
 while not done:
