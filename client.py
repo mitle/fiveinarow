@@ -195,10 +195,12 @@ class Board():
         self.board = np.zeros(self.size)
         self.num_to_win = num_to_win
         self.last_move = None
+        self.occupied = set()
 
     def place(self, pos, color):
-        if self.board[pos] == 0:
+        if pos not in self.occupied:
             self.board[pos] = color
+            self.occupied.add(pos)
             self.last_move = (pos, color)
         else:
             raise self.OccupiedException
@@ -212,7 +214,10 @@ class Board():
 
         return True
 
-    def __get_color(self, pos):
+    def get_occupied(self):
+        return self.occupied
+
+    def get_color(self, pos):
         return self.board[pos]
 
     def __check_row(self, origin, direction):
@@ -223,7 +228,7 @@ class Board():
             pos = tuple(map(lambda x, y: (x + y), direction, pos))
             if not self.__is_in_grid(pos):
                 return False
-            if self.__get_color(pos) != color:
+            if self.get_color(pos) != color:
                 return False
             to_count -= 1
 
@@ -234,7 +239,7 @@ class Board():
 
     def check_board(self):
         origin = self.last_move
-        directions = [ (1,0), (1,1), (0,1), (-1,1), (-1,0), (-1,-1), (0,-1), (1,-1) ]
+        directions = [(1,0), (1,1), (0,1), (-1,1), (-1,0), (-1,-1), (0,-1), (1,-1)]
         for d in directions:
             if self.__check_row(origin, d):
                 return origin,d
@@ -248,7 +253,7 @@ class Grid():
         self.conf = conf
         self.__update_conf()
         self.anim_sleep = 1/20
-        self.board = Board((self.cols, self.rows))
+        self.board = Board((self.cols, self.rows), conf['n_to_win'])
 
     def set_anim_speed(self, speed):
         self.anim_sleep = 1/speed
@@ -258,6 +263,7 @@ class Grid():
         self.cols = conf['numgridx']
         self.rows = conf['numgridy']
         self.bold_grid = conf['bold_grid']
+        self.colors = {1: (255, 0, 0), 2: (0, 0, 0)}
 
         self.xboundary = 30
         self.yboundary = 30
@@ -275,7 +281,9 @@ class Grid():
 
         self.width = 2 if self.bold_grid else 1
 
-    def draw(self, flush=False, animate=False):
+        self.squaresize = self.grid_width / self.cols
+
+    def draw_grid(self, flush=False, animate=False):
         screen_width, screen_height = self.screen.get_size()
         for r in range(self.rows + 1):
             pos_y = (self.grid_height / self.rows) * r + self.yboundary
@@ -311,8 +319,26 @@ class Grid():
 
         return x,y
 
+    def draw_board(self):
+        for pos in self.board.get_occupied():
+            playercolor = self.board.get_color(pos)
+            self.__draw_move(pos, playercolor)
+
+
+    def __draw_move(self, pos, playercolor):
+        pos_x = int(self.xboundary + pos[0] * self.squaresize)
+        pos_y = int(self.yboundary + pos[1] * self.squaresize)
+        markersize = int((self.squaresize - 3)/2)
+
+        color = self.colors[playercolor]
+        pygame.draw.circle(self.screen, color, (pos_x, pos_y), markersize)
+
+
     def place(self, gridpos, color):
-        self.board.place(gridpos, color)
+        try:
+            self.board.place(gridpos, color)
+        except self.board.OccupiedException as e:
+            return
         board_status = self.board.check_board()
         if board_status is not None:
             print("winning move (x, y)={pos} in direction {dir}".format(pos=board_status[0], dir=board_status[1]))
@@ -321,7 +347,7 @@ class Grid():
 
 
 grid = Grid(screen, conf)
-grid.draw(animate=True)
+grid.draw_grid(animate=True)
 
 gridcoord = None
 
@@ -345,10 +371,11 @@ while not done:
 
     if gridcoord is not None:
         encrypted_send(gridcoord)
-
+        grid.place(gridcoord, 1)
         gridcoord = None
 
-    grid.draw()
+    grid.draw_grid()
+    grid.draw_board()
 
     pygame.display.flip()
     clock.tick(25)
