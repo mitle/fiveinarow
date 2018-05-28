@@ -97,6 +97,21 @@ print("sending player: " + player2.name)
 socket.send(token)
 
 
+#recieving configuration
+recv_conf = dict()
+recv_conf['numgridx'] = 20
+recv_conf['numgridy'] = 20
+recv_conf['n_to_win'] = 5
+
+conf = dict()
+confs = ['numgridx', 'numgridy', 'n_to_win']
+for c in confs:
+    conf[c] = recv_conf[c]
+
+
+
+
+
 
 while not done:
     screen.fill((42, 42, 42))
