@@ -11,26 +11,48 @@ import rsa
 config_file_name = 'config.txt'
 conf = dict()
 
-def set_default_config():
-    conf['numgrid'] = 20
-    conf['n_to_win'] = 5
 
+def set_default_config():
+    conf['numgridx'] = 20
+    conf['numgridy'] = 20
+    conf['bgcolor'] = (211, 211, 211)
+    conf['gridcolor'] = (42, 42, 42)
+    conf['n_to_win'] = 5
+    conf['port'] = 14522
+    conf['rsakeybits'] = 1024
+    conf['network_timeout'] = 20
+    conf['verbose'] = True
+    conf['bold_grid'] = False
 
 def save_config():
     with open(config_file_name, 'w') as conf_file:
         json.dump(conf, conf_file, sort_keys=True, indent=4)
 
-try:
+
+def load_config():
     with open(config_file_name, 'r') as conf_file:
+        global conf
         conf = json.load(conf_file)
+
+
+try:
+    load_config()
 except FileNotFoundError as e:
     set_default_config()
     save_config()
+except json.JSONDecodeError as e:
+    print("Invalid JSON in config file, using default config")
+    set_default_config()
+
+
+# FOR DEBUG ONLY !!
+set_default_config()
+save_config()
 
 
 pygame.init()
 clock = pygame.time.Clock()
-screen = pygame.display.set_mode((640, 640))
+screen = pygame.display.set_mode((640, 480))
 done = False
 
 ip_isset = False
@@ -44,7 +66,7 @@ active = False
 text = ''
 
 while not done and not ip_isset:
-    screen.fill((42, 42, 42))
+    screen.fill(conf['bgcolor'])
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             done = True
@@ -69,6 +91,8 @@ while not done and not ip_isset:
                 else:
                     text += event.unicode
 
+
+
     # print title
     txt_surface = font.render("Enter host IP address:", True, pygame.Color('azure2'))
     screen.blit(txt_surface, (input_box.x - 45, input_box.y - 35))
@@ -90,7 +114,8 @@ while not done and not ip_isset:
     pygame.display.flip()
     clock.tick(25)
 
-port = "14522"
+
+port = str(conf['port'])
 context = zmq.Context()
 socket = context.socket(zmq.PAIR)
 server_addr = "tcp://{ip}:{port}".format(ip=ip_text, port=port)
@@ -110,7 +135,7 @@ class Player():
 #get asymmetric keys
 #(pubkey, privkey) = rsa.newkeys(1024)
 start = time.time()
-timeout_sec = 20
+timeout_sec = conf['network_timeout']
 graceful = False
 while time.time() - start < timeout_sec:
     try:
@@ -142,10 +167,39 @@ pickeled_player = f.decrypt(enc_msg)
 player2 = pickle.loads(pickeled_player)
 
 
+def draw_grid():
+    gridcolor = conf['gridcolor']
+    row = conf['numgridy']
+    col = conf['numgridx']
+    xboundary = 30
+    yboundary = 30
+    screen_width, screen_height = pygame.display.get_surface().get_size()
+    grid_height = screen_height - 2 * yboundary
+    grid_width = screen_width - 2 * xboundary
+
+    if grid_width < grid_height:
+        yboundary += (screen_height - screen_width) / 2
+        grid_height = grid_width
+
+    elif grid_width > screen_height:
+        xboundary += (screen_width - screen_height) / 2
+        grid_width = grid_height
+
+    width = 2 if conf['bold_grid'] else 1
+    for r in range(row + 1):
+        pos_y = (grid_height / row) * r + yboundary
+        pos_x_start = xboundary
+        pos_x_end = screen_width - xboundary
+        pygame.draw.line(screen, gridcolor, (pos_x_start, pos_y), (pos_x_end, pos_y), width)
+    for c in range(col + 1):
+        pos_x = (grid_width / col) * c + xboundary
+        pos_y_start = yboundary
+        pos_y_end = screen_height - yboundary
+        pygame.draw.line(screen, gridcolor, (pos_x, pos_y_start), (pos_x, pos_y_end), width)
 
 
 while not done:
-    screen.fill((42, 42, 42))
+    screen.fill(conf['bgcolor'])
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             done = True
@@ -159,6 +213,8 @@ while not done:
 
     txt_surface = font.render("player2: " + player2.name, True, pygame.Color('red'))
     screen.blit(txt_surface, (150, 200))
+
+    draw_grid()
 
     pygame.display.flip()
     clock.tick(25)
