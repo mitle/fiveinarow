@@ -115,16 +115,25 @@ while not done and not ip_isset:
     pygame.display.flip()
     clock.tick(25)
 
-def print_connecting():
+
+def print_center_text(text):
     screen.fill(conf['bgcolor'])
     font = pygame.font.SysFont(None, 50)
-    txt = "Connecting to " + ip_text + " . . ."
-    txt_surface = font.render(txt, True, conf['textcolor'])
+    txt_surface = font.render(text, True, conf['textcolor'])
     screensize = pygame.display.get_surface().get_size()
-    textsize = font.size(txt)
-    textpos = tuple(map(lambda x, y: (x - y)/2, screensize, textsize))
+    textsize = font.size(text)
+    textpos = tuple(map(lambda x, y: (x - y) / 2, screensize, textsize))
     screen.blit(txt_surface, textpos)
     pygame.display.flip()
+
+def print_connecting():
+    txt = "Connecting to " + ip_text + " . . ."
+    print_center_text(txt)
+
+def print_connected():
+    text = "Connected"
+    print_center_text(text)
+
 
 print_connecting()
 
@@ -349,7 +358,7 @@ class Grid():
             print("winning move ((x,y),color)={pos} in direction {dir}".format(pos=board_status[0], dir=board_status[1]))
             # game over
 
-
+print_connected()
 
 grid = Grid(screen, conf)
 grid.draw_grid(animate=True)
