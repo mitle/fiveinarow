@@ -109,7 +109,15 @@ for c in confs:
     conf[c] = recv_conf[c]
 
 
-
+def encrypted_recv():
+    try:
+        recv_data = socket.recv(flags=zmq.NOBLOCK)
+        pickeled_data = f.decrypt(recv_data)
+        data = pickle.loads(pickeled_data)
+        print(data)
+        return data
+    except zmq.Again as e:
+        return None
 
 
 
@@ -128,6 +136,8 @@ while not done:
 
     txt_surface = font.render("you    : " + player2.name, True, pygame.Color('red'))
     screen.blit(txt_surface, (150, 200))
+
+    data = encrypted_recv()
 
     pygame.display.flip()
     clock.tick(25)

@@ -179,6 +179,14 @@ enc_msg = socket.recv()
 pickeled_player = f.decrypt(enc_msg)
 player2 = pickle.loads(pickeled_player)
 
+
+def encrypted_send(data):
+    token = f.encrypt(pickle.dumps(data))
+    print("sending data: ", end='')
+    print(data)
+    socket.send(token)
+
+
 class Grid():
     def __init__(self, screen, conf):
         self.screen = screen
@@ -233,15 +241,33 @@ class Grid():
         if flush:
             pygame.display.flip()
 
+    def get_clicked_cell(self, event_pos):
+        posx = event_pos[0] - self.xboundary
+        posy = event_pos[1] - self.yboundary
+
+        if posx < 0 or self.grid_width < posx:
+            return
+        if posy < 0 or self.grid_height < posy:
+            return
+
+        x = int(posx / self.cols)
+        y = int(posy / self.rows)
+
+        return x,y
+
 
 grid = Grid(screen, conf)
 grid.draw(animate=True)
+
+gridcoord = None
 
 while not done:
     screen.fill(conf['bgcolor'])
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             done = True
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            gridcoord = grid.get_clicked_cell(event.pos)
 
     if pygame.key.get_pressed()[pygame.K_SPACE]:
         pygame.draw.rect(screen, (255, 0, 0), pygame.Rect(100, 100, 10, 60))
@@ -252,6 +278,10 @@ while not done:
 
     txt_surface = font.render("player2: " + player2.name, True, pygame.Color('red'))
     screen.blit(txt_surface, (150, 200))
+
+    if gridcoord is not None:
+        encrypted_send(gridcoord)
+        gridcoord = None
 
     grid.draw()
 
