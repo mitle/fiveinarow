@@ -6,7 +6,7 @@ import fir
 from cryptography.fernet import Fernet
 import pickle
 import rsa
-
+import numpy as np
 
 config_file_name = 'config.txt'
 conf = dict()
@@ -186,6 +186,61 @@ def encrypted_send(data):
     print(data)
     socket.send(token)
 
+class Board():
+    class OccupiedException(Exception):
+        pass
+
+    def __init__(self, shape, num_to_win):
+        self.size = shape
+        self.board = np.zeros(self.size)
+        self.num_to_win = num_to_win
+        self.last_move = None
+
+    def place(self, pos, color):
+        if self.board[pos] == 0:
+            self.board[pos] = color
+            self.last_move = (pos, color)
+        else:
+            raise self.OccupiedException
+
+    def __is_in_grid(self, pos):
+        x, y = pos
+        if x < 0 or self.size[0] <= x:
+            return False
+        if y < 0 or self.size[1] <= y:
+            return False
+
+        return True
+
+    def __get_color(self, pos):
+        return self.board[pos]
+
+    def __check_row(self, origin, direction):
+        to_count = self.num_to_win
+        pos = origin[0]
+        color = origin[1]
+        while to_count:
+            pos = tuple(map(lambda x, y: (x + y), direction, pos))
+            if not self.__is_in_grid(pos):
+                return False
+            if self.__get_color(pos) != color:
+                return False
+            to_count -= 1
+
+        if to_count == 0:
+            return True
+        else:
+            return False
+
+    def check_board(self):
+        origin = self.last_move
+        directions = [ (1,0), (1,1), (0,1), (-1,1), (-1,0), (-1,-1), (0,-1), (1,-1) ]
+        for d in directions:
+            if self.__check_row(origin, d):
+                return origin,d
+
+        return None
+
 
 class Grid():
     def __init__(self, screen, conf):
@@ -193,6 +248,7 @@ class Grid():
         self.conf = conf
         self.__update_conf()
         self.anim_sleep = 1/20
+        self.board = Board((self.cols, self.rows))
 
     def set_anim_speed(self, speed):
         self.anim_sleep = 1/speed
@@ -255,6 +311,14 @@ class Grid():
 
         return x,y
 
+    def place(self, gridpos, color):
+        self.board.place(gridpos, color)
+        board_status = self.board.check_board()
+        if board_status is not None:
+            print("winning move (x, y)={pos} in direction {dir}".format(pos=board_status[0], dir=board_status[1]))
+            # game over
+
+
 
 grid = Grid(screen, conf)
 grid.draw(animate=True)
@@ -281,6 +345,7 @@ while not done:
 
     if gridcoord is not None:
         encrypted_send(gridcoord)
+
         gridcoord = None
 
     grid.draw()
