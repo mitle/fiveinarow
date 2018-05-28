@@ -1,4 +1,20 @@
 {
+    "bgcolor": [
+        211,
+        211,
+        211
+    ],
+    "bold_grid": false,
+    "gridcolor": [
+        42,
+        42,
+        42
+    ],
     "n_to_win": 5,
-    "numgrid": 20
+    "network_timeout": 20,
+    "numgridx": 20,
+    "numgridy": 20,
+    "port": 14522,
+    "rsakeybits": 1024,
+    "verbose": true
 }
