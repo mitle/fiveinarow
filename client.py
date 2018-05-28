@@ -23,6 +23,7 @@ def set_default_config():
     conf['network_timeout'] = 20
     conf['verbose'] = True
     conf['bold_grid'] = False
+    conf['textcolor'] = (42, 42, 42)
 
 def save_config():
     with open(config_file_name, 'w') as conf_file:
@@ -114,6 +115,18 @@ while not done and not ip_isset:
     pygame.display.flip()
     clock.tick(25)
 
+def print_connecting():
+    screen.fill(conf['bgcolor'])
+    font = pygame.font.SysFont(None, 50)
+    txt = "Connecting to " + ip_text + " . . ."
+    txt_surface = font.render(txt, True, conf['textcolor'])
+    screensize = pygame.display.get_surface().get_size()
+    textsize = font.size(txt)
+    textpos = tuple(map(lambda x, y: (x - y)/2, screensize, textsize))
+    screen.blit(txt_surface, textpos)
+    pygame.display.flip()
+
+print_connecting()
 
 port = str(conf['port'])
 context = zmq.Context()

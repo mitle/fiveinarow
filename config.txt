@@ -16,5 +16,10 @@
     "numgridy": 20,
     "port": 14522,
     "rsakeybits": 1024,
+    "textcolor": [
+        42,
+        42,
+        42
+    ],
     "verbose": true
 }
