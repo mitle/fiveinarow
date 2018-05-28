@@ -12,8 +12,8 @@
     ],
     "n_to_win": 5,
     "network_timeout": 20,
-    "numgridx": 20,
-    "numgridy": 20,
+    "numgridx": 10,
+    "numgridy": 10,
     "port": 14522,
     "rsakeybits": 1024,
     "textcolor": [

@@ -99,8 +99,8 @@ socket.send(token)
 
 #recieving configuration
 recv_conf = dict()
-recv_conf['numgridx'] = 20
-recv_conf['numgridy'] = 20
+recv_conf['numgridx'] = 10
+recv_conf['numgridy'] = 10
 recv_conf['n_to_win'] = 5
 
 conf = dict()

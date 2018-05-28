@@ -13,8 +13,8 @@ conf = dict()
 
 
 def set_default_config():
-    conf['numgridx'] = 20
-    conf['numgridy'] = 20
+    conf['numgridx'] = 10
+    conf['numgridy'] = 10
     conf['bgcolor'] = (211, 211, 211)
     conf['gridcolor'] = (42, 42, 42)
     conf['n_to_win'] = 5
@@ -53,7 +53,7 @@ save_config()
 
 pygame.init()
 clock = pygame.time.Clock()
-screen = pygame.display.set_mode((640, 480))
+screen = pygame.display.set_mode((640, 640))
 done = False
 
 ip_isset = False
@@ -222,24 +222,29 @@ class Board():
 
     def __check_row(self, origin, direction):
         to_count = self.num_to_win
-        pos = origin[0]
-        color = origin[1]
-        while to_count:
-            pos = tuple(map(lambda x, y: (x + y), direction, pos))
-            if not self.__is_in_grid(pos):
-                return False
-            if self.get_color(pos) != color:
-                return False
-            to_count -= 1
 
-        if to_count == 0:
+        color = origin[1]
+
+        count_minus_dir = 0
+        pos = origin[0]
+        while self.get_color(pos) == color:
+            pos = tuple(map(lambda p, d: (p - d), pos, direction))
+            count_minus_dir += 1
+
+        count_plus_dir = 0
+        pos = origin[0]
+        while self.get_color(pos) == color:
+            pos = tuple(map(lambda p, d: (p + d), pos, direction))
+            count_plus_dir += 1
+
+        if to_count == count_plus_dir + count_minus_dir - 1: ## origin is counted twice
             return True
         else:
             return False
 
     def check_board(self):
         origin = self.last_move
-        directions = [(1,0), (1,1), (0,1), (-1,1), (-1,0), (-1,-1), (0,-1), (1,-1)]
+        directions = [(1,0), (1,1), (0,1), (-1,1)]
         for d in directions:
             if self.__check_row(origin, d):
                 return origin,d
@@ -314,8 +319,8 @@ class Grid():
         if posy < 0 or self.grid_height < posy:
             return
 
-        x = int(posx / self.cols)
-        y = int(posy / self.rows)
+        x = int(posx / self.squaresize)
+        y = int(posy / self.squaresize)
 
         return x,y
 
@@ -326,8 +331,8 @@ class Grid():
 
 
     def __draw_move(self, pos, playercolor):
-        pos_x = int(self.xboundary + pos[0] * self.squaresize)
-        pos_y = int(self.yboundary + pos[1] * self.squaresize)
+        pos_x = int(self.xboundary + pos[0] * self.squaresize + self.squaresize/2)
+        pos_y = int(self.yboundary + pos[1] * self.squaresize + self.squaresize/2)
         markersize = int((self.squaresize - 3)/2)
 
         color = self.colors[playercolor]
@@ -341,7 +346,7 @@ class Grid():
             return
         board_status = self.board.check_board()
         if board_status is not None:
-            print("winning move (x, y)={pos} in direction {dir}".format(pos=board_status[0], dir=board_status[1]))
+            print("winning move ((x,y),color)={pos} in direction {dir}".format(pos=board_status[0], dir=board_status[1]))
             # game over
 
 
