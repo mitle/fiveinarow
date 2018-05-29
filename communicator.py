@@ -10,6 +10,7 @@ import time
 from cryptography.fernet import Fernet
 import rsa
 import pickle
+import random
 
 class TimeoutException(Exception):
     pass
@@ -18,6 +19,11 @@ class TimeoutException(Exception):
 class Communicator():
     SERVER = 'ser'
     CLIENT = 'cli'
+
+    class DataPacket:
+        def __init__(self, data, header):
+            self.data = data
+            self.header = header
 
     def __init__(self, mode, port, ip_addr=None, rsa_key_bits=None):
         if mode in [self.SERVER, self.CLIENT]:
@@ -34,6 +40,8 @@ class Communicator():
         elif self.mode == self.CLIENT:
             self.ip_text = ip_addr
             self.__init_client()
+
+        self.is_connected = self.check_echo()
 
     def init_encryption(self):
         if self.mode == self.SERVER:
@@ -73,6 +81,24 @@ class Communicator():
         encrypted_key = rsa.encrypt(self.symm_key, self.pubkey)
         self.send(encrypted_key)
         self.symmetric_cipher_f = Fernet(self.symm_key)
+
+    def check_echo(self):
+        txdata = ''.join(chr(random.randint(0,255)) for _ in range(128))
+        send_data = self.DataPacket(data=txdata, header='echo')
+
+        self.send(send_data, pyobj=True)
+
+        #wait for server to echo
+        try:
+            recv_data = self.nonblock_recv(pyobj=True, timeout=5)
+        except TimeoutException as e:
+            return False
+
+        if recv_data.header == 'echo':
+            if send_data.data == recv_data.data:
+                return True
+
+        return False
 
     def send(self, data, pyobj=False):
         if pyobj:
