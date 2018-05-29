@@ -11,6 +11,7 @@ clone and run client.py/server.py
 #### Required packages
 
 * zmq
+* numpy
 * cryptography
 * rsa
 * pygame
