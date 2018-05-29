@@ -122,7 +122,7 @@ is_connected = False
 while not done and not is_connected:
     screen.fill((42, 42, 42))
     for event in pygame.event.get():
-        if event.type == pygame.QUIT:
+        if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and pygame.key.get_pressed()[pygame.K_F4] and pygame.key.get_pressed()[pygame.KMOD_ALT]):
             done = True
 
     # print title
@@ -185,7 +185,7 @@ font = pygame.font.SysFont(None, 24)
 while not done:
     screen.fill((42, 42, 42))
     for event in pygame.event.get():
-        if event.type == pygame.QUIT:
+        if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and pygame.key.get_pressed()[pygame.K_F4] and pygame.key.get_pressed()[pygame.KMOD_ALT]):
             done = True
 
     if pygame.key.get_pressed()[pygame.K_SPACE]:

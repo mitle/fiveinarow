@@ -69,7 +69,7 @@ text = ''
 while not done and not ip_isset:
     screen.fill(conf['bgcolor'])
     for event in pygame.event.get():
-        if event.type == pygame.QUIT:
+        if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and pygame.key.get_pressed()[pygame.K_F4] and pygame.key.get_pressed()[pygame.KMOD_ALT]):
             done = True
         if event.type == pygame.MOUSEBUTTONDOWN:
             # If the user clicked on the input_box rect.
@@ -95,7 +95,8 @@ while not done and not ip_isset:
 
 
     # print title
-    txt_surface = font.render("Enter host IP address:", True, pygame.Color('azure2'))
+    font = pygame.font.SysFont("Courier New", 24)
+    txt_surface = font.render("Enter host IP address:", True, conf['textcolor'])
     screen.blit(txt_surface, (input_box.x - 45, input_box.y - 35))
 
     # Render the current text.
@@ -342,7 +343,7 @@ class Grid():
     def __draw_move(self, pos, playercolor):
         pos_x = int(self.xboundary + pos[0] * self.squaresize + self.squaresize/2)
         pos_y = int(self.yboundary + pos[1] * self.squaresize + self.squaresize/2)
-        markersize = int((self.squaresize - 3)/2)
+        markersize = int((self.squaresize*0.7)/2 )
 
         color = self.colors[playercolor]
         pygame.draw.circle(self.screen, color, (pos_x, pos_y), markersize)
@@ -368,7 +369,7 @@ gridcoord = None
 while not done:
     screen.fill(conf['bgcolor'])
     for event in pygame.event.get():
-        if event.type == pygame.QUIT:
+        if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and pygame.key.get_pressed()[pygame.K_F4] and pygame.key.get_pressed()[pygame.KMOD_ALT]):
             done = True
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             gridcoord = grid.get_clicked_cell(event.pos)
