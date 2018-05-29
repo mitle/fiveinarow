@@ -141,6 +141,9 @@ class FiveInaRow:
                         self.ip_isset = True
                         self.ip_addr = text
 
+                        self.print_connecting()
+                        pygame.display.flip()
+
                         self.comm = Communicator(mode=self.CLIENT, port=self.conf['port'], ip_addr=self.ip_addr)
                         # send hello to the server
                         self.comm.send(self.hello_header)
