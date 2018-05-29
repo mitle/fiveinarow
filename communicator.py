@@ -25,23 +25,30 @@ class Communicator():
             self.data = data
             self.header = header
 
-    def __init__(self, mode, port, ip_addr=None, rsa_key_bits=None):
+    def __init__(self, mode,):
         if mode in [self.SERVER, self.CLIENT]:
             self.mode = mode
         else:
             raise ValueError
 
+        self.port = None
+        self.ip_text = None
+        self.rsa_key_bits = None
+        self.is_connected = False
+
+    def init_connection(self, port, ip_addr=None, rsa_key_bits=None):
         self.port = port
 
         if self.mode == self.SERVER:
             self.ip_text = 'localhost'
-            self.__init_server()
             self.rsa_key_bits = rsa_key_bits
+            self.__init_server()
+
         elif self.mode == self.CLIENT:
             self.ip_text = ip_addr
             self.__init_client()
 
-        self.is_connected = self.check_echo()
+
 
     def init_encryption(self):
         if self.mode == self.SERVER:
@@ -60,15 +67,17 @@ class Communicator():
         server_addr = "tcp://{ip}:{port}".format(ip=self.ip_text, port=self.port)
         self.socket.connect(server_addr)
 
+
     def __init_server_encryption(self):
         (self.pubkey, self.privkey) = rsa.newkeys(self.rsa_key_bits)
         self.send(self.pubkey, header='pubkey')
 
         # get sym auth
-        try:
-            encrypted_key = self.recv(timeout=15, header='encrypted_symm_key')
-        except TimeoutException as e:
-            raise e
+        header = None
+        counter = 200
+        while header != 'encrypted_symm_key' and counter > 0:
+            counter -= 1
+            encrypted_key, header = self.recv(timeout=15)
 
         self.symm_key = rsa.decrypt(encrypted_key, self.privkey)
         self.symmetric_cipher_f = Fernet(self.symm_key)
@@ -77,7 +86,12 @@ class Communicator():
         # gen sym auth
         self.symm_key = Fernet.generate_key()
 
-        self.pubkey = self.recv(timeout=15, header='pubkey')
+        header = None
+        counter = 200
+        while header != 'pubkey' and counter > 0:
+            counter -= 1
+            self.pubkey, header = self.recv(timeout=15)
+
 
         encrypted_key = rsa.encrypt(self.symm_key, self.pubkey)
         self.send(encrypted_key, header='encrypted_symm_key')
@@ -87,41 +101,60 @@ class Communicator():
     def check_echo(self):
         send_data = ''.join(chr(random.randint(0,255)) for _ in range(128))
 
-        self.send(data=send_data, header='echo')
+        self.send(data=send_data, header='echo_'+self.mode)
 
         #wait for server to echo
         try:
-            recv_data = self.__nonblock_recv(pyobj=True, timeout=5)
+            recv_data, header = self.recv(timeout=3)
         except TimeoutException as e:
             return False
 
-        if recv_data.header == 'echo':
-            if send_data.data == recv_data.data:
+        if header == 'echo_'+ (self.SERVER if self.mode == self.CLIENT else self.CLIENT):
+            try:
+                recv_data, header = self.recv(timeout=3)
+            except TimeoutException as e:
+                return False
+            self.send(data=recv_data.data, header=header)
+
+        if header == 'echo_'+self.mode and send_data.data == recv_data.data:
                 return True
 
         return False
 
     def send(self, data, header=None):
         packed_data = self.DataPacket(data=data, header=header)
+        print("sending {}: ".format(header), end='')
+        print(data)
         self.__send(packed_data, pyobj=True)
 
-    def recv(self, timeout=None, header=None):
-        rx_data = self.__nonblock_recv(timeout=timeout, pyobj=True)
+    def recv(self, timeout=None):
+        recv_packet = self.__nonblock_recv(timeout=timeout, pyobj=True)
+        if recv_packet is None:
+            return None, None
+        print("recieved {}: ".format(recv_packet.header), end='')
+        print(recv_packet.data)
+        return recv_packet.data, recv_packet.header
 
     def encrypted_send(self, data, header=None):
-        token = self.symmetric_cipher_f.encrypt(pickle.dumps(data))
-        print("sending data: ", end='')
+        data_packet = self.DataPacket(data=data, header=header)
+        pickled_data_packet = pickle.dumps(data_packet)
+        token = self.symmetric_cipher_f.encrypt(pickled_data_packet)
+        print("sending {}: ".format(header), end='')
         print(data)
-        self.__send(token, header)
+        self.__send(token)
 
-    def encrypted_recv(self, timeout=0.0, header=None):
+    def encrypted_recv(self, timeout=None):
         recv_data = self.__nonblock_recv(timeout=timeout)
         if recv_data is None:
-            return None
+            return None, None
+
         pickeled_packed_data = self.symmetric_cipher_f.decrypt(recv_data)
         packed_data = pickle.loads(pickeled_packed_data)
-        print(packed_data)
-        return packed_data.data
+
+        print("recieved {}: ".format(packed_data.header), end='')
+        print(packed_data.data)
+
+        return packed_data.data, packed_data.header
 
     def __send(self, data, pyobj=False):
         if pyobj:
@@ -140,6 +173,8 @@ class Communicator():
             except zmq.Again as e:
                 return None
         else:
+            if timeout is None:
+                timeout = 30
             start = time.time()
             timeout_sec = timeout
             while time.time() - start < timeout_sec:

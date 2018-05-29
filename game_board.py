@@ -54,25 +54,27 @@ class Board:
 
         count_minus_dir = 0
         pos = origin[0]
-        while self.get_player_id(pos) == player_id:
+        while True:
             pos = tuple(map(lambda p, d: (p - d), pos, direction))
             if not self.__is_in_grid(pos):
                 break
             if not self.is_occupied(pos):
                 break
-            count_minus_dir += 1
+            if self.get_player_id(pos) == player_id:
+                count_minus_dir += 1
 
         count_plus_dir = 0
         pos = origin[0]
-        while self.get_player_id(pos) == player_id:
+        while True:
             pos = tuple(map(lambda p, d: (p + d), pos, direction))
             if not self.__is_in_grid(pos):
                 break
             if not self.is_occupied(pos):
                 break
-            count_plus_dir += 1
+            if self.get_player_id(pos) == player_id:
+                count_plus_dir += 1
 
-        if to_count == count_plus_dir + count_minus_dir - 1: ## origin is counted twice
+        if to_count == count_plus_dir + count_minus_dir + 1:  # origin is not counted by the methods above
             return True
         else:
             return False
@@ -190,11 +192,13 @@ class Grid:
         try:
             self.board.place(gridpos, player_id)
         except self.board.OccupiedException as e:
-            return
+            return True, None
         board_status = self.board.check_board()
         if board_status is not None:
             print("winning move ((x,y),id)={pos} in direction {dir}".format(pos=board_status[0], dir=board_status[1]))
+            return False, board_status
             # game over
+        return True, None
 
 
 class Player:
