@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
@@ -19,8 +18,6 @@ class TextBox:
         self.box_color = self.colors['ina']
         self.is_active = False
         self.title = title
-
-        self.font = pygame.font.SysFont("Courier New", 24)
 
     def get_text(self):
         return self.text

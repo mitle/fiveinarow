@@ -13,6 +13,7 @@ import json
 import sys
 import time
 from pg_text_input import TextBox
+from pg_button import PushButton
 
 class FiveInaRow:
     SERVER = Communicator.SERVER
@@ -268,6 +269,9 @@ class FiveInaRow:
             if success:
                 self.next_player()
 
+    def __send_new_game_req(self):
+        self.comm.encrypted_send(None, 'new_game')
+
     def __recieve_data(self, encrypted=True):
         if encrypted:
             data, header = self.comm.encrypted_recv(timeout=0.0)
@@ -311,6 +315,12 @@ class FiveInaRow:
                 self.game_is_on = True
                 continue
 
+            if header == 'new_game':
+                self.grid.board.clear()
+                self.game_is_on = True
+                self.board_status = None
+                continue
+
         self.recv_buffer = []
 
 
@@ -327,15 +337,18 @@ class FiveInaRow:
         self.get_other_player()
         self.__recieve_data()
 
-
     def start_game(self):
         self.init_game()
+
+        box_dim = (500, 1, 32, 32)
+        pb = PushButton(self.screen, dim=box_dim, colors=self.conf['box_colors'], text="new game")
 
         while not self.done:
             self.screen.fill(self.conf['bgcolor'])
             for event in pygame.event.get():
                 self.__process_exit_event(event)
                 self.grid.process_event(event)
+                pb.proc_event(event)
 
 
             last_move = self.grid.get_gridcoord()
@@ -355,6 +368,18 @@ class FiveInaRow:
                 self.print_center_text("GAME OVER", color=(255,0,0), clear=False, fontsize=100)
                 if self.player.id == self.board_status[0][1]:
                     self.print_text("Winner", (310, 16), fontsize=20, color=self.conf['player_colors'][self.player.id])
+
+                pb.draw()
+
+                if pb.active():
+                    pb.active(False)
+                    self.grid.board.clear()
+                    self.game_is_on = True
+                    self.board_status = None
+                    self.__send_new_game_req()
+
+
+
 
 
             self.grid.draw_grid()

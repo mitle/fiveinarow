@@ -29,6 +29,10 @@ class Board:
         else:
             raise self.OccupiedException
 
+    def clear(self):
+        self.board = np.zeros(self.size)
+        self.occupied = set()
+
     def __is_in_grid(self, pos):
         x, y = pos
         if x < 0 or self.size[0] <= x:
