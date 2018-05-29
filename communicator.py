@@ -25,13 +25,14 @@ class Communicator():
         else:
             raise ValueError
 
+        self.port = port
+
         if self.mode == self.SERVER:
             self.ip_text = 'localhost'
             self.__init_server()
             self.rsa_key_bits = rsa_key_bits
         elif self.mode == self.CLIENT:
             self.ip_text = ip_addr
-            self.port = port
             self.__init_client()
 
     def init_encryption(self):
@@ -65,7 +66,19 @@ class Communicator():
         self.symmetric_cipher_f = Fernet(self.symm_key)
 
     def __init_client_encryption(self):
-        pass
+        # gen sym auth
+        self.symm_key = Fernet.generate_key()
+
+        self.pubkey = self.nonblock_recv(timeout=15, pyobj=True)
+        encrypted_key = rsa.encrypt(self.symm_key, self.pubkey)
+        self.send(encrypted_key)
+        self.symmetric_cipher_f = Fernet(self.symm_key)
+
+    def send(self, data, pyobj=False):
+        if pyobj:
+            self.socket.send_pyobj(data)
+        else:
+            self.socket.send(data)
 
     def encrypted_send(self, data):
         token = self.symmetric_cipher_f.encrypt(pickle.dumps(data))
@@ -109,9 +122,4 @@ class Communicator():
             print("Connection timed out!")
             raise TimeoutException
 
-    def send(self, data, pyobj=False):
-        if pyobj:
-            self.socket.send_pyobj(data)
-        else:
-            self.socket.send(data)
 
