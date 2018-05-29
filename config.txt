@@ -29,7 +29,8 @@
             42
         ]
     },
-    "connection_timeout": 3,
+    "comm_timeout": 3,
+    "connection_timeout": 5,
     "gridcolor": [
         42,
         42,
@@ -37,8 +38,8 @@
     ],
     "n_to_win": 5,
     "network_timeout": 15,
-    "numgridx": 10,
-    "numgridy": 10,
+    "numgridx": 15,
+    "numgridy": 15,
     "player_colors": [
         [
             255,

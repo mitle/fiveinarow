@@ -129,10 +129,11 @@ class FiveInaRow:
             self.clock.tick(25)
 
         if self.is_connected:
+            self.print_connected()
             self.initial_connection()
 
     def __init_client(self):
-
+        print('initclient')
         self.comm = Communicator(mode=self.CLIENT)
 
         box_dim = (50, 50, 140, 32)
@@ -161,20 +162,15 @@ class FiveInaRow:
                 if self.is_connected:
                     self.initial_connection()
                 else:
-                    self.__say_hello()
-                    self.__say_hello()
-                    self.__say_hello()
-
-                    self.__say_hello()
-                    self.__say_hello()
-
-
                     if time.time() - last_hello > 0.5:
+                        last_hello = time.time()
                         self.__say_hello()
                     self.__recieve_data(encrypted=False)
                     self.__process_recieved_data()
                 if (time.time() - conn_start) > self.conf['connection_timeout']:
+                    self.comm.clear_send_queue()
                     raise TimeoutException
+
             else:
                 input_box.draw()
 
@@ -268,8 +264,9 @@ class FiveInaRow:
             return
 
         if self.player_on_move(player_id):
-            self.game_is_on, self.board_status = self.grid.place(pos, player_id)
-            self.next_player()
+            self.game_is_on, self.board_status, success = self.grid.place(pos, player_id)
+            if success:
+                self.next_player()
 
     def __recieve_data(self, encrypted=True):
         if encrypted:

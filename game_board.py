@@ -192,13 +192,14 @@ class Grid:
         try:
             self.board.place(gridpos, player_id)
         except self.board.OccupiedException as e:
-            return True, None
+            return True, None, False
         board_status = self.board.check_board()
         if board_status is not None:
             print("winning move ((x,y),id)={pos} in direction {dir}".format(pos=board_status[0], dir=board_status[1]))
-            return False, board_status
+            return False, board_status, True
             # game over
-        return True, None
+
+        return True, None, True
 
 
 class Player:
