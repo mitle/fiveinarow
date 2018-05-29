@@ -7,10 +7,12 @@ ZeroMQ based one-to-one communicator class with RSA key exchange and symmetric e
 
 import zmq
 import time
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
 import rsa
 import pickle
 import random
+
+import logging
 
 class TimeoutException(Exception):
     pass
@@ -150,7 +152,13 @@ class Communicator():
         if recv_data is None:
             return None, None
 
-        pickeled_packed_data = self.symmetric_cipher_f.decrypt(recv_data)
+        try:
+            pickeled_packed_data = self.symmetric_cipher_f.decrypt(recv_data)
+        except InvalidToken as e:
+            logging.info("recieved corrupt data or unencrypted")
+            pickeled_packed_data = recv_data
+
+
         packed_data = pickle.loads(pickeled_packed_data)
 
         print("recieved {}: ".format(packed_data.header), end='')

@@ -5,7 +5,10 @@
 Five in a row game server
 """
 
+import logging
 from fiveinarow import FiveInaRow
+
+logging.basicConfig(format='%(levelname)s:%(module)s:%(message)s', level=logging.DEBUG)
 
 fir = FiveInaRow(FiveInaRow.SERVER)
 fir.set_player('Kata')

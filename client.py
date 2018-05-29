@@ -5,9 +5,12 @@
 Five in a row game client
 """
 
+import logging
 from fiveinarow import FiveInaRow
 from communicator import TimeoutException
 
+
+logging.basicConfig(format='%(levelname)s:%(module)s:%(message)s', level=logging.DEBUG)
 
 while True:
     try:

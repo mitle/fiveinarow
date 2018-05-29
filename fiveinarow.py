@@ -5,6 +5,7 @@
 Five in a row game, network dual player mode
 """
 
+import logging
 import pygame
 from communicator import Communicator, TimeoutException
 from game_board import Grid, Board, Player
@@ -14,6 +15,7 @@ import sys
 import time
 from pg_text_input import TextBox
 from pg_button import PushButton
+
 
 class FiveInaRow:
     SERVER = Communicator.SERVER
@@ -58,6 +60,7 @@ class FiveInaRow:
 
         self.game_is_on = False
         self.board_status = None
+
 
 
     def __pygame_init(self):
@@ -349,7 +352,8 @@ class FiveInaRow:
                 self.__process_exit_event(event)
                 self.grid.process_event(event)
                 pb.proc_event(event)
-
+                #if event.type == pygame.KEYDOWN and event.key == pygame.K_a:
+                #    self.comm.check_echo()
 
             last_move = self.grid.get_gridcoord()
 
