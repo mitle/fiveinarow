@@ -42,7 +42,7 @@ class TextBox:
             else:
                 self.active(False)
 
-        if event.type == pygame.KEYDOWN:
+        if event.type == pygame.KEYDOWN and self.active():
             if event.key in [pygame.K_RETURN, pygame.K_KP_ENTER]:
                 return self.text
             elif event.key == pygame.K_BACKSPACE:

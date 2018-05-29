@@ -18,8 +18,8 @@ class FiveInaRow:
     SERVER = Communicator.SERVER
     CLIENT = Communicator.CLIENT
 
-    config_ids = ['numgridx', 'numgridy', 'bgcolor', 'gridcolor', 'n_to_win', 'port', 'rsakeybits',
-                  'network_timeout', 'connection_timeout', 'verbose', 'bold_grid', 'textcolor', 'box_colors']
+    config_ids = ['numgridx', 'numgridy', 'bgcolor', 'gridcolor', 'n_to_win', 'port', 'rsakeybits', 'network_timeout',
+                  'connection_timeout', 'verbose', 'bold_grid', 'textcolor', 'box_colors', 'player_colors']
 
     def __init__(self, mode):
         self.mode = mode
@@ -44,6 +44,7 @@ class FiveInaRow:
         self.other_player = None
         self.server_player_conf = None
         self.encrypted_comm = False
+        self.is_connected = False
 
         if self.mode == self.SERVER:
             self.__init_server()
@@ -56,7 +57,6 @@ class FiveInaRow:
         self.clock = pygame.time.Clock()
         self.screen = pygame.display.set_mode(self.window_size)
         self.done = False
-        self.is_connected = False
 
     def set_default_config(self):
         self.conf['numgridx'] = 10
@@ -75,6 +75,7 @@ class FiveInaRow:
                                    'ina': tuple(pygame.Color('lightskyblue3')),
                                    'txt': (42, 42, 42),
                                    'bg': (211, 211, 211)}
+        self.conf['player_colors'] = [(255, 0, 0), (0, 0, 0)]
 
     def __check_config(self):
         for c in self.config_ids:
@@ -193,20 +194,20 @@ class FiveInaRow:
             self.comm.init_encryption()
             self.encrypted_comm = True
 
-        if self.mode == self.CLIENT:
-            self.server_player_conf = self.comm.nonblock_recv()
+        if self.mode == self.CLIENT and self.encrypted_comm:
+            self.server_player_conf = self.comm.encrypted_recv()
             if self.server_player_conf is not None:
                 self.__apply_server_conf(self.server_player_conf)
                 self.is_connected = True
                 self.print_connected()
 
-        elif self.mode == self.SERVER:
-            self.comm.send(self.conf)
+        elif self.mode == self.SERVER and self.encrypted_comm:
+            self.comm.encrypted_send(self.conf)
 
 
     def set_player(self, name):
-        id = 0 if self.mode == self.SERVER else 1
-        self.player = Player(name, color=id)
+        player_id = 0 if self.mode == self.SERVER else 1
+        self.player = Player(name, id=player_id)
 
     def start_game(self):
         self.grid = Grid(screen=self.screen, clock=self.clock, conf=self.conf)
@@ -222,7 +223,7 @@ class FiveInaRow:
             last_move = self.grid.get_gridcoord()
             if last_move is not None:
                 self.comm.encrypted_send(last_move)
-                self.grid.place(last_move, self.player.color)
+                self.grid.place(last_move, self.player.id)
                 self.grid.clear_gridcoord()
 
             self.grid.draw_grid()

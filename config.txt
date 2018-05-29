@@ -39,6 +39,18 @@
     "network_timeout": 15,
     "numgridx": 10,
     "numgridy": 10,
+    "player_colors": [
+        [
+            255,
+            0,
+            0
+        ],
+        [
+            0,
+            0,
+            0
+        ]
+    ],
     "port": 14522,
     "rsakeybits": 1024,
     "textcolor": [
