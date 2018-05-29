@@ -62,11 +62,13 @@ class Communicator():
         self.socket.bind("tcp://*:{port}".format(port=self.port))
 
     def __init_client(self):
-        context = zmq.Context()
-        self.socket = context.socket(zmq.PAIR)
+        self.context = zmq.Context()
+        self.socket = self.context.socket(zmq.PAIR)
         server_addr = "tcp://{ip}:{port}".format(ip=self.ip_text, port=self.port)
         self.socket.connect(server_addr)
 
+    def clear_send_queue(self):
+        self.socket.setsockopt(zmq.LINGER, 100)
 
     def __init_server_encryption(self):
         (self.pubkey, self.privkey) = rsa.newkeys(self.rsa_key_bits)

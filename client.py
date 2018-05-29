@@ -8,15 +8,13 @@ Five in a row game client
 from fiveinarow import FiveInaRow
 from communicator import TimeoutException
 
-fir = None
-is_connected = False
-while not is_connected:
+
+while True:
     try:
         fir = FiveInaRow(FiveInaRow.CLIENT)
-        is_connected = True
-    except TimeoutException as e:
-        print("Can not connect, connection timed out")
+        break
+    except TimeoutException:
+        pass
 
-if fir is not None:
-    fir.set_player('Levi')
-    fir.start_game()
+fir.set_player('Levi')
+fir.start_game()
