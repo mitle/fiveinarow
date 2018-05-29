@@ -21,11 +21,11 @@ class Board:
         self.occupied = set()
         self.gridcoord = None
 
-    def place(self, pos, color):
+    def place(self, pos, player_id):
         if pos not in self.occupied:
-            self.board[pos] = color
+            self.board[pos] = player_id
             self.occupied.add(pos)
-            self.last_move = (pos, color)
+            self.last_move = (pos, player_id)
         else:
             raise self.OccupiedException
 
@@ -41,24 +41,35 @@ class Board:
     def get_occupied(self):
         return self.occupied
 
-    def get_color(self, pos):
-        return self.board[pos]
+    def is_occupied(self, pos):
+        return pos in self.occupied
+
+    def get_player_id(self, pos):
+        return int(self.board[pos])
 
     def __check_row(self, origin, direction):
         to_count = self.num_to_win
 
-        color = origin[1]
+        player_id = origin[1]
 
         count_minus_dir = 0
         pos = origin[0]
-        while self.get_color(pos) == color:
+        while self.get_player_id(pos) == player_id:
             pos = tuple(map(lambda p, d: (p - d), pos, direction))
+            if not self.__is_in_grid(pos):
+                break
+            if not self.is_occupied(pos):
+                break
             count_minus_dir += 1
 
         count_plus_dir = 0
         pos = origin[0]
-        while self.get_color(pos) == color:
+        while self.get_player_id(pos) == player_id:
             pos = tuple(map(lambda p, d: (p + d), pos, direction))
+            if not self.__is_in_grid(pos):
+                break
+            if not self.is_occupied(pos):
+                break
             count_plus_dir += 1
 
         if to_count == count_plus_dir + count_minus_dir - 1: ## origin is counted twice
@@ -94,7 +105,7 @@ class Grid:
         self.cols = self.conf['numgridx']
         self.rows = self.conf['numgridy']
         self.bold_grid = self.conf['bold_grid']
-        self.colors = {1: (255, 0, 0), 2: (0, 0, 0)}
+        self.colors = self.conf['player_colors']
 
         self.xboundary = 30
         self.yboundary = 30
@@ -162,34 +173,34 @@ class Grid:
 
     def draw_board(self):
         for pos in self.board.get_occupied():
-            playercolor = self.board.get_color(pos)
-            self.__draw_move(pos, playercolor)
+            player_id = self.board.get_player_id(pos)
+            self.__draw_move(pos, player_id)
 
 
-    def __draw_move(self, pos, playercolor):
+    def __draw_move(self, pos, player_id):
         pos_x = int(self.xboundary + pos[0] * self.squaresize + self.squaresize/2)
         pos_y = int(self.yboundary + pos[1] * self.squaresize + self.squaresize/2)
         markersize = int((self.squaresize*0.7)/2 )
 
-        color = self.colors[playercolor]
+        color = self.colors[player_id]
         pygame.draw.circle(self.screen, color, (pos_x, pos_y), markersize)
 
 
-    def place(self, gridpos, color):
+    def place(self, gridpos, player_id):
         try:
-            self.board.place(gridpos, color)
+            self.board.place(gridpos, player_id)
         except self.board.OccupiedException as e:
             return
         board_status = self.board.check_board()
         if board_status is not None:
-            print("winning move ((x,y),color)={pos} in direction {dir}".format(pos=board_status[0], dir=board_status[1]))
+            print("winning move ((x,y),id)={pos} in direction {dir}".format(pos=board_status[0], dir=board_status[1]))
             # game over
 
 
 class Player:
-    def __init__(self, name, color):
+    def __init__(self, name, id):
         self.name = name
-        self.color = color
+        self.id = id
         self.turn = None
         self.points = 0
         self.last_move = None
