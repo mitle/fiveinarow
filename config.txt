@@ -5,13 +5,38 @@
         211
     ],
     "bold_grid": false,
+    "box_colors": {
+        "akt": [
+            28,
+            134,
+            238,
+            255
+        ],
+        "bg": [
+            211,
+            211,
+            211
+        ],
+        "ina": [
+            141,
+            182,
+            205,
+            255
+        ],
+        "txt": [
+            42,
+            42,
+            42
+        ]
+    },
+    "connection_timeout": 3,
     "gridcolor": [
         42,
         42,
         42
     ],
     "n_to_win": 5,
-    "network_timeout": 20,
+    "network_timeout": 15,
     "numgridx": 10,
     "numgridy": 10,
     "port": 14522,
