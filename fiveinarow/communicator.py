@@ -17,6 +17,8 @@ import logging
 import ipaddress
 import socket
 
+from fiveinarow.encrypted_communicator import EncryptedComm
+
 
 def validate_hostname(hostname):
     def get_ip_from_hostname(_hostname):
@@ -51,6 +53,13 @@ class Communicator():
             pass
 
         def __init__(self, data, header=None):
+            """
+            Constructs data packet from data-header pair.
+            If header is None, try DataPacket object or iterable types
+            :param data: data
+            :param header: header
+            """
+
             if header is None:
                 try:
                     self.data = data.data
@@ -68,6 +77,10 @@ class Communicator():
                 self.header = header
 
         def __str__(self):
+            """
+            Makes readable string from datapacket
+            :return: formatted string
+            """
             return "({}, {})".format(self.data, self.header)
 
     def __init__(self, mode):
@@ -81,61 +94,68 @@ class Communicator():
         self.rsa_key_bits = None
         self.is_connected = False
 
-        self.llcom = None
+        self.encomm = None
 
     def init_connection(self, port, hostname=None, rsa_key_bits=None):
+        """
+        Initialises encrypted communicator
+        :param port: TCP/IP port for communication
+        :param hostname: hostname or IP address, to that the client connects (ignored in server mode)
+        :param rsa_key_bits: RSA key size for asymmetric key-pair generator (ignored in client mode)
+        :return: None
+        """
         self.port = port
+        self.hostname = 'localhost'
 
         if self.mode == self.SERVER:
-            self.hostname = 'localhost'
             self.rsa_key_bits = rsa_key_bits
-            self.llcom = LL
 
         elif self.mode == self.CLIENT:
-            self.hostname = hostname
-            self.__init_client()
+            if hostname is None:
+                logging.error("client needs some hostname to connect to")
+            else:
+                self.hostname = hostname
 
-    def init_encryption(self):
+        self.encomm = EncryptedComm(self.mode, ip_addr=self.hostname, port=self.port, rsa_key_bits=self.rsa_key_bits)
+        self.__init_encryption()
+
+    def __init_encryption(self):
         if self.mode == self.SERVER:
             self.__init_server_encryption()
         elif self.mode == self.CLIENT:
             self.__init_client_encryption()
 
+    def __wait_for_header(self, header, max_dropped_messages=200, timeout=15):
+        assert(header is not None)
+        assert(max_dropped_messages > 0)
 
+        counter = max_dropped_messages
+        recv_header = None
+        while recv_header != header and counter > 0:
+            counter -= 1
+            data, header = self.encrypted_recv(timeout=timeout)
 
-    def clear_send_queue(self):
-        self.llcom.clear_send_queue()
+        return data
+
 
     def __init_server_encryption(self):
-        (self.pubkey, self.privkey) = rsa.newkeys(self.rsa_key_bits)
-        self.send(self.pubkey, header='pubkey')
 
-        # get sym auth
-        header = None
-        counter = 200
-        while header != 'encrypted_symm_key' and counter > 0:
-            counter -= 1
-            encrypted_key, header = self.recv(timeout=15)
+        pubkey = self.encomm.server_gen_rsa()
+        self.encrypted_send(data=pubkey, header='pubkey')
 
-        self.symm_key = rsa.decrypt(encrypted_key, self.privkey)
-        self.symmetric_cipher_f = Fernet(self.symm_key)
+        encrypted_key = self.__wait_for_header('encrypted_symm_key')
+
+        self.encomm.server_init_encryption(encrypted_key)
 
     def __init_client_encryption(self):
-        # gen sym auth
-        self.symm_key = Fernet.generate_key()
 
-        header = None
-        counter = 200
-        while header != 'pubkey' and counter > 0:
-            counter -= 1
-            self.pubkey, header = self.recv(timeout=15)
+        partner_pubkey = self.__wait_for_header('pubkey')
+
+        encrypted_key = self.encomm.client_gen_symmetric_key(partner_pubkey)
+        self.encrypted_send(encrypted_key, header='encrypted_symm_key')
 
 
-        encrypted_key = rsa.encrypt(self.symm_key, self.pubkey)
-        self.send(encrypted_key, header='encrypted_symm_key')
-
-        self.symmetric_cipher_f = Fernet(self.symm_key)
-
+    """
     def check_echo(self):
         send_data = ''.join(chr(random.randint(0,255)) for _ in range(128))
 
@@ -158,7 +178,9 @@ class Communicator():
                 return True
 
         return False
+    """
 
+    """
     def send(self, data, header=None):
         packed_data = self.DataPacket(data=data, header=header)
         print("sending {}: ".format(header), end='')
@@ -172,67 +194,33 @@ class Communicator():
         print("recieved {}: ".format(recv_packet.header), end='')
         print(recv_packet.data)
         return recv_packet.data, recv_packet.header
+    """
 
     def encrypted_send(self, data, header=None):
+        """
+        Packs header and data to DataPacket, serialises it with pickle and sends
+        :param data: data to send
+        :param header: optional header for data
+        :return: None
+        """
+
         data_packet = self.DataPacket(data=data, header=header)
         pickled_data_packet = pickle.dumps(data_packet)
-        token = self.symmetric_cipher_f.encrypt(pickled_data_packet)
-        print("sending {}: ".format(header), end='')
-        print(data)
-        self.__send(token)
+
+        logging.debug("sending {}: {}".format(header, data))
+        self.encomm.send(pickled_data_packet)
 
     def encrypted_recv(self, timeout=None):
-        recv_data = self.__nonblock_recv(timeout=timeout)
-        if recv_data is None:
-            return None, None
+        """
+        Recieves data
+        :param timeout:
+        :return: (data, header)
+        """
 
-        try:
-            pickeled_packed_data = self.symmetric_cipher_f.decrypt(recv_data)
-        except InvalidToken as e:
-            logging.info("recieved corrupt data or unencrypted")
-            pickeled_packed_data = recv_data
+        pickeled_packed_data = self.encomm.recv(timeout=timeout)
+        packed_data = self.DataPacket(pickle.loads(pickeled_packed_data))
 
-
-        packed_data = pickle.loads(pickeled_packed_data)
-
-        print("recieved {}: ".format(packed_data.header), end='')
-        print(packed_data.data)
-
+        logging.debug("recieved {}: {}".format(packed_data.header, packed_data.data))
         return packed_data.data, packed_data.header
-
-    def __send(self, data, pyobj=False):
-        if pyobj:
-            self.socket.send_pyobj(data)
-        else:
-            self.socket.send(data)
-
-    def __nonblock_recv(self, timeout=0.0, pyobj=False):
-        if timeout == 0.0:
-            try:
-                if pyobj:
-                    data = self.socket.recv_pyobj(flags=zmq.NOBLOCK)
-                else:
-                    data = self.socket.recv(flags=zmq.NOBLOCK)
-                return data
-            except zmq.Again as e:
-                return None
-        else:
-            if timeout is None:
-                timeout = 30
-            start = time.time()
-            timeout_sec = timeout
-            while time.time() - start < timeout_sec:
-                try:
-                    if pyobj:
-                        data = self.socket.recv_pyobj(flags=zmq.NOBLOCK)
-                    else:
-                        data = self.socket.recv(flags=zmq.NOBLOCK)
-
-                    return data
-                except zmq.Again as e:
-                    time.sleep(.99)
-
-            print("Connection timed out!")
-            raise TimeoutException
 
 
