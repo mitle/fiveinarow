@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-NAME module init tests
+Five in a row module init tests
 """
+
+
 

@@ -117,13 +117,13 @@ class Communicator():
                 self.hostname = hostname
 
         self.encomm = EncryptedComm(self.mode, ip_addr=self.hostname, port=self.port, rsa_key_bits=self.rsa_key_bits)
-        self.__init_encryption()
+        #self.__init_encryption()
 
-    def __init_encryption(self):
+    def init_encryption(self):
         if self.mode == self.SERVER:
-            self.__init_server_encryption()
+            return self.__init_server_encryption()
         elif self.mode == self.CLIENT:
-            self.__init_client_encryption()
+            return self.__init_client_encryption()
 
     def __wait_for_header(self, header, max_dropped_messages=200, timeout=15):
         assert(header is not None)
@@ -133,9 +133,12 @@ class Communicator():
         recv_header = None
         while recv_header != header and counter > 0:
             counter -= 1
-            data, header = self.encrypted_recv(timeout=timeout)
+            recv_data, recv_header = self.encrypted_recv(timeout=timeout)
 
-        return data
+        if counter == 0:
+            return None
+
+        return recv_data
 
 
     def __init_server_encryption(self):
@@ -144,15 +147,26 @@ class Communicator():
         self.encrypted_send(data=pubkey, header='pubkey')
 
         encrypted_key = self.__wait_for_header('encrypted_symm_key')
+        if encrypted_key is None:
+            return False
 
         self.encomm.server_init_encryption(encrypted_key)
+
+        return True
 
     def __init_client_encryption(self):
 
         partner_pubkey = self.__wait_for_header('pubkey')
+        if partner_pubkey is None:
+            return False
 
         encrypted_key = self.encomm.client_gen_symmetric_key(partner_pubkey)
         self.encrypted_send(encrypted_key, header='encrypted_symm_key')
+
+        self.encomm.client_init_encryption()
+
+
+        return True
 
 
     """
@@ -205,22 +219,40 @@ class Communicator():
         """
 
         data_packet = self.DataPacket(data=data, header=header)
-        pickled_data_packet = pickle.dumps(data_packet)
+        pickled_data_packet = self.__serialize_object(data_packet)
 
         logging.debug("sending {}: {}".format(header, data))
         self.encomm.send(pickled_data_packet)
 
     def encrypted_recv(self, timeout=None):
         """
-        Recieves data
-        :param timeout:
+        Recieves data, (None, None) will be returned if nothing were received because of timeout.
+        :param timeout: seconds, 0 for nonblocking, None for no timeout
         :return: (data, header)
         """
 
-        pickeled_packed_data = self.encomm.recv(timeout=timeout)
-        packed_data = self.DataPacket(pickle.loads(pickeled_packed_data))
+        recv_data = self.encomm.recv(timeout=timeout)
+        if recv_data is None:
+            return None, None
 
+        packed_data = self.__reconstruct_object(recv_data)
         logging.debug("recieved {}: {}".format(packed_data.header, packed_data.data))
         return packed_data.data, packed_data.header
 
+    def __serialize_object(self, obj: DataPacket) -> bytes:
+        """
+        Method for serializing and object for sending.
+        :param data: DataPacket (or any object)
+        :return: pickled bytes representation of the object
+        """
 
+        return pickle.dumps(obj)
+
+    def __reconstruct_object(self, byte_obj: bytes) -> DataPacket:
+        """
+        Method for reconstructing object from bytes representation.
+        :param byte_obj: bytes object
+        :return: reconstructed DataPacket object
+        """
+
+        return pickle.loads(byte_obj)

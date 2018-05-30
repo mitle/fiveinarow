@@ -9,10 +9,6 @@ import zmq
 import time
 
 
-class LLTimeoutException(Exception):
-    pass
-
-
 class LLComm:
     SERVER = 'ser'
     CLIENT = 'cli'
@@ -90,7 +86,7 @@ class LLComm:
                     time.sleep(.99)
 
             logging.error("communication timed out")
-            raise LLTimeoutException
+            return None
 
     def clear_send_queue(self, timeout_ms=100):
         """

@@ -68,11 +68,25 @@ class EncryptedComm:
         return self.pubkey
 
     def server_init_encryption(self, encrypted_symmkey):
+        """
+        Stats server's encryption
+        :param encrypted_symmkey:
+        :return: None
+        """
+
         try:
             self.symm_key = rsa.decrypt(encrypted_symmkey, self.privkey)
             self._init_symm_encryption()
         except rsa.DecryptionError:
             logging.error("cannot decrypt given data with private key, symmetrical cipher untouched")
+
+    def client_init_encryption(self):
+        """
+        Starts client's encryption
+        :return: None
+        """
+
+        self._init_symm_encryption()
 
     def client_gen_symmetric_key(self, partner_pubkey):
         """
@@ -86,7 +100,6 @@ class EncryptedComm:
         self.partner_pubkey = partner_pubkey
 
         self.symm_key = Fernet.generate_key()
-        self._init_symm_encryption()
         return rsa.encrypt(self.symm_key, self.partner_pubkey)
 
     def _init_symm_encryption(self):
@@ -111,7 +124,7 @@ class EncryptedComm:
         :return: endrypted data
         """
 
-        if self.symmetric_cipher is None
+        if self.symmetric_cipher is None:
             if self.ready:
                 logging.warning("no cipher set, cannot encrypt")
             data = secret
@@ -140,7 +153,7 @@ class EncryptedComm:
 
         return secret
 
-    def send(self, data, timeout):
+    def send(self, data, timeout=None):
         """
         Encrypts and sends data through LowLevel communicator.
         :param data: data to send

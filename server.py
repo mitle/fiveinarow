@@ -6,10 +6,9 @@ Five in a row game server
 """
 
 import logging
-from fiveinarow import FiveInaRow
+from fiveinarow.fiveinarow import FiveInaRow
 
-logging.basicConfig(format='%(levelname)s:%(module)s:%(message)s', level=logging.DEBUG)
-
+logging.info("Starting server instance")
 fir = FiveInaRow(FiveInaRow.SERVER)
-fir.set_player('Kata')
+fir.set_player('Kata', FiveInaRow.FIRSTMOVE)
 fir.start_game()

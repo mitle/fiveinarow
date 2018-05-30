@@ -6,12 +6,12 @@ Five in a row game client
 """
 
 import logging
-from fiveinarow import FiveInaRow
-from communicator import TimeoutException
+from fiveinarow.fiveinarow import FiveInaRow
+from fiveinarow.communicator import TimeoutException
 
 
-logging.basicConfig(format='%(levelname)s:%(module)s:%(message)s', level=logging.DEBUG)
 
+logging.info("Starting server instance")
 while True:
     try:
         fir = FiveInaRow(FiveInaRow.CLIENT)

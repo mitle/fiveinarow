@@ -18,7 +18,7 @@ config = {
     'author_email': 'mitnyik.levente@hallgato.ppke.hu',
     'version': '0.1',
     'install_requires': ['pygame', 'zmq', 'numpy', 'rsa', 'cryptography', 'nose'],
-    'packages': ['NAME'],
+    'packages': ['fiveinarow'],
     'scripts': [],
     'name': 'fiveinarow'
 }
