@@ -7,7 +7,7 @@ Five in a row game, network dual player mode
 
 import logging
 import pygame
-from communicator import Communicator, TimeoutException
+from communicator import Communicator, TimeoutException, validate_hostname
 from game_board import Grid, Board, Player
 import socket
 import json
@@ -106,6 +106,7 @@ class FiveInaRow:
             self.__check_config()
 
     def __init_server(self):
+        logging.DEBUG("__init_server()")
         self.ip_list = socket.gethostbyname_ex(socket.gethostname())[2]
 
         self.comm = Communicator(mode=self.SERVER)
@@ -137,7 +138,8 @@ class FiveInaRow:
             self.initial_connection()
 
     def __init_client(self):
-        print('initclient')
+        logging.DEBUG("__init_client()")
+
         self.comm = Communicator(mode=self.CLIENT)
 
         box_dim = (50, 50, 140, 32)
@@ -150,16 +152,20 @@ class FiveInaRow:
                 if not self.ip_isset:
                     text = input_box.proc_event(event)
                     if text is not None:
-                        self.ip_isset = True
-                        self.ip_addr = text
+                        logging.debug("input text: " + text)
+                        if validate_hostname(text):
+                            self.ip_isset = True
+                            self.ip_addr = text
 
-                        self.print_connecting()
-                        pygame.display.flip()
+                            self.print_connecting()
+                            pygame.display.flip()
 
-                        self.comm.init_connection(port=self.conf['port'], ip_addr=self.ip_addr)
+                            self.comm.init_connection(port=self.conf['port'], hostname=self.ip_addr)
 
-                        self.__say_hello()
-                        last_hello = conn_start = time.time()
+                            self.__say_hello()
+                            last_hello = conn_start = time.time()
+                        else:
+                            logging.warning("invalid ip address or unresolvable hostname")
 
             if self.ip_isset:
                 self.print_connecting()

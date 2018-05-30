@@ -14,6 +14,30 @@ import random
 
 import logging
 
+import ipaddress
+import socket
+
+
+def validate_hostname(hostname):
+    def get_ip_from_hostname(_hostname):
+        try:
+            return socket.gethostbyname(_hostname)
+        except socket.error:
+            return None
+
+    if len(hostname) < 4:
+        return False
+    ip_str = get_ip_from_hostname(hostname)
+    if ip_str is not None:
+        return True
+    try:
+        ipaddress.ip_address(hostname)
+        return True
+    except ValueError:
+        return False
+
+
+
 class TimeoutException(Exception):
     pass
 
@@ -23,34 +47,53 @@ class Communicator():
     CLIENT = 'cli'
 
     class DataPacket:
-        def __init__(self, data, header):
-            self.data = data
-            self.header = header
+        class DPTypeError(TypeError):
+            pass
 
-    def __init__(self, mode,):
+        def __init__(self, data, header=None):
+            if header is None:
+                try:
+                    self.data = data.data
+                    self.header = data.header
+                except AttributeError:
+                    try:
+                        self.data = data[0]
+                        self.data = data[1]
+                    except (IndexError, TypeError):
+                        logging.error("cant create data packet")
+                        raise self.DPTypeError
+
+            else:
+                self.data = data
+                self.header = header
+
+        def __str__(self):
+            return "({}, {})".format(self.data, self.header)
+
+    def __init__(self, mode):
         if mode in [self.SERVER, self.CLIENT]:
             self.mode = mode
         else:
             raise ValueError
 
         self.port = None
-        self.ip_text = None
+        self.hostname = None
         self.rsa_key_bits = None
         self.is_connected = False
 
-    def init_connection(self, port, ip_addr=None, rsa_key_bits=None):
+        self.llcom = None
+
+    def init_connection(self, port, hostname=None, rsa_key_bits=None):
         self.port = port
 
         if self.mode == self.SERVER:
-            self.ip_text = 'localhost'
+            self.hostname = 'localhost'
             self.rsa_key_bits = rsa_key_bits
-            self.__init_server()
+            self.llcom = LL
 
         elif self.mode == self.CLIENT:
-            self.ip_text = ip_addr
+            self.hostname = hostname
             self.__init_client()
-
-
 
     def init_encryption(self):
         if self.mode == self.SERVER:
@@ -58,19 +101,10 @@ class Communicator():
         elif self.mode == self.CLIENT:
             self.__init_client_encryption()
 
-    def __init_server(self):
-        self.context = zmq.Context()
-        self.socket = self.context.socket(zmq.PAIR)
-        self.socket.bind("tcp://*:{port}".format(port=self.port))
 
-    def __init_client(self):
-        self.context = zmq.Context()
-        self.socket = self.context.socket(zmq.PAIR)
-        server_addr = "tcp://{ip}:{port}".format(ip=self.ip_text, port=self.port)
-        self.socket.connect(server_addr)
 
     def clear_send_queue(self):
-        self.socket.setsockopt(zmq.LINGER, 100)
+        self.llcom.clear_send_queue()
 
     def __init_server_encryption(self):
         (self.pubkey, self.privkey) = rsa.newkeys(self.rsa_key_bits)

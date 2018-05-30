@@ -41,7 +41,9 @@ class TextBox:
 
         if event.type == pygame.KEYDOWN and self.active():
             if event.key in [pygame.K_RETURN, pygame.K_KP_ENTER]:
-                return self.text
+                t = self.text
+                self.empty()
+                return t
             elif event.key == pygame.K_BACKSPACE:
                 self.text = self.text[:-1]
             else:
