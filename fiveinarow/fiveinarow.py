@@ -46,6 +46,8 @@ class FiveInaRow:
         self.hello_header = b"hello_fir_server"
 
         self._pygame_init()
+        self.sounds = dict()
+        self.__pygame_music_init()
         self.grid = None
         self.player = None
         self.other_player = None
@@ -64,6 +66,8 @@ class FiveInaRow:
         self.game_is_on = False
         self.board_status = None
 
+        self.sounds['conn'].play()
+
 
 
     def _pygame_init(self):
@@ -71,6 +75,14 @@ class FiveInaRow:
         self.clock = pygame.time.Clock()
         self.screen = pygame.display.set_mode(self.window_size)
         self.done = False
+
+    def __pygame_music_init(self):
+        pygame.mixer.init()
+        sound_dir = 'sounds/'
+
+        self.sounds['move'] = pygame.mixer.Sound(sound_dir + 'move.ogg')
+        self.sounds['conn'] = pygame.mixer.Sound(sound_dir + 'connected.ogg')
+        self.sounds['end'] = pygame.mixer.Sound(sound_dir + 'game_end3.ogg')
 
     def set_default_config(self):
         self.conf['numgridx'] = 15
@@ -299,6 +311,7 @@ class FiveInaRow:
 
     def __process_move(self, pos, player_id):
         if not self.game_is_on:
+            logging.debug('Dropped move {}, game is not on'.format(pos))
             return
 
         if self.player_on_move(player_id):
@@ -345,6 +358,7 @@ class FiveInaRow:
                 continue
 
             if header == 'move':
+                self.sounds['move'].play()
                 self.__process_move(data, self.other_player.id)
                 continue
 
@@ -382,6 +396,10 @@ class FiveInaRow:
         self.get_other_player()
         self.__recieve_data()
 
+        self.bg_music_on = True
+        pygame.mixer.music.load('sounds/bg_music.ogg')
+        pygame.mixer.music.play(-1)
+
     def start_game(self):
         self.init_game()
 
@@ -414,12 +432,21 @@ class FiveInaRow:
             self.__process_recieved_data()
 
             if not self.game_is_on and self.board_status is not None:
-                self.print_center_text("GAME OVER", color=(255,0,0), clear=False, fontsize=100)
+                if self.bg_music_on:
+                    self.bg_music_on = False
+                    pygame.mixer.music.pause()
+                    self.sounds['end'].play()
+
+
 
                 if self.player.id == self.board_status[0][1] and self.board_status[1] != (0,0):
-                    self.print_text("Winner", (310, 12), fontsize=24, color=self.conf['player_colors'][self.player.id])
+                    #self.print_text("Winner", (310, 12), fontsize=24, color=self.conf['player_colors'][self.player.id])
+                    self.print_center_text("YOU WIN", color=(255, 0, 0), clear=False, fontsize=100)
+                else:
+                    self.print_center_text("GAME OVER", color=(255, 0, 0), clear=False, fontsize=100)
 
                 if self.board_status[1] == (0, 0):
+                    self.print_center_text("GAME OVER", color=(255, 0, 0), clear=False, fontsize=100)
                     self.print_text("The match ended in a tie.", (225, 12), fontsize=24, color=self.conf['player_colors'][self.player.id])
 
                 pb.draw(new_game)
@@ -430,9 +457,13 @@ class FiveInaRow:
                     self.send_request('new_game')
 
                 if self.req_new_game and new_game:
+                    new_game = False
+                    self.req_new_game = False
                     self.grid.board.clear()
                     self.game_is_on = True
                     self.board_status = None
+                    pygame.mixer.music.unpause()
+                    self.bg_music_on = True
 
             self.print_text("Player: {}".format(self.player.name), (100, 10), color=self.conf['player_colors'][self.player.id])
 
