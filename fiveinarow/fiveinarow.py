@@ -407,6 +407,7 @@ class FiveInaRow:
         pb = PushButton(self.screen, dim=box_dim, colors=self.conf['box_colors'], text="new game")
 
         self.game_start_time = time.time()
+        self.game_end_time = time.time()
         self.req_new_game = False
         new_game = False
 
@@ -435,6 +436,7 @@ class FiveInaRow:
                 if self.bg_music_on:
                     self.bg_music_on = False
                     pygame.mixer.music.pause()
+                    self.game_end_time = time.time()
                     self.sounds['end'].play()
 
 
@@ -461,6 +463,7 @@ class FiveInaRow:
                     self.req_new_game = False
                     self.grid.board.clear()
                     self.game_is_on = True
+                    self.game_start_time = time.time()
                     self.board_status = None
                     pygame.mixer.music.unpause()
                     self.bg_music_on = True
@@ -468,7 +471,10 @@ class FiveInaRow:
             self.print_text("Player: {}".format(self.player.name), (100, 10), color=self.conf['player_colors'][self.player.id])
 
             # print game time
-            game_time_text = time.strftime("%M:%S", time.gmtime(time.time()-self.game_start_time))
+            if self.game_is_on:
+                game_time_text = time.strftime("%M:%S", time.gmtime(time.time()-self.game_start_time))
+            else:
+                game_time_text = time.strftime("%M:%S", time.gmtime(self.game_end_time - self.game_start_time))
             self.print_text("{}".format(game_time_text), (292, 615), color=self.conf['textcolor'], fontsize=20, font='Courier')
 
             self.grid.draw_grid()
