@@ -415,8 +415,12 @@ class FiveInaRow:
 
             if not self.game_is_on and self.board_status is not None:
                 self.print_center_text("GAME OVER", color=(255,0,0), clear=False, fontsize=100)
-                if self.player.id == self.board_status[0][1]:
-                    self.print_text("Winner", (310, 16), fontsize=20, color=self.conf['player_colors'][self.player.id])
+
+                if self.player.id == self.board_status[0][1] and self.board_status[1] != (0,0):
+                    self.print_text("Winner", (310, 12), fontsize=24, color=self.conf['player_colors'][self.player.id])
+
+                if self.board_status[1] == (0, 0):
+                    self.print_text("The match ended in a tie.", (225, 12), fontsize=24, color=self.conf['player_colors'][self.player.id])
 
                 pb.draw(new_game)
 

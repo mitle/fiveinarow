@@ -5,8 +5,10 @@
 Five in a row game board, grid drawer based on pygame
 """
 
+import logging
 import pygame
 import numpy as np
+from functools import reduce
 import time
 
 class Board:
@@ -14,15 +16,25 @@ class Board:
         pass
 
     def __init__(self, shape, num_to_win):
+        """
+        Initialising the board with its size, number of moves in a row.
+        :param shape: board size value-pair, tuple
+        :param num_to_win: number of moves in a row to win
+        """
         self.size = shape
-        self.board = np.zeros(self.size)
-        self.num_to_win = num_to_win
+        self.board = np.zeros(self.size)  # Using a numpy array, indexable with a coordinate pair
+        if max(self.size) < num_to_win:
+            self.num_to_win = max(self.size)
+            logging.info("num to win decreased to {}".format(self.num_to_win))
+        else:
+            self.num_to_win = num_to_win
+
         self.last_move = None
         self.occupied = set()
         self.gridcoord = None
 
     def place(self, pos, player_id):
-        if pos not in self.occupied:
+        if not self.is_occupied(pos):
             self.board[pos] = player_id
             self.occupied.add(pos)
             self.last_move = (pos, player_id)
@@ -85,6 +97,11 @@ class Board:
 
     def check_board(self):
         origin = self.last_move
+
+        if len(self.occupied) == reduce(lambda x, y: x * y, self.size):
+            logging.info("board is full")
+            return origin, (0, 0)
+
         directions = [(1, 0), (1, 1), (0, 1), (-1, 1)]
         for d in directions:
             if self.__check_row(origin, d):
@@ -199,7 +216,8 @@ class Grid:
             return True, None, False
         board_status = self.board.check_board()
         if board_status is not None:
-            print("winning move ((x,y),id)={pos} in direction {dir}".format(pos=board_status[0], dir=board_status[1]))
+            if board_status[1] != (0,0):  # board is full
+                print("winning move ((x,y),id)={pos} in direction {dir}".format(pos=board_status[0], dir=board_status[1]))
             return False, board_status, True
             # game over
 
