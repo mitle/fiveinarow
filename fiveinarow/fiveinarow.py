@@ -29,7 +29,10 @@ class FiveInaRow:
                   'player_colors']
 
     def __init__(self, mode):
+        assert(mode in [self.SERVER, self.CLIENT])
+
         self.mode = mode
+        self.mode_str = "Server" if self.mode == self.SERVER else "Client"
         self.window_size = (640, 640)
 
         self.config_file_name = 'config.txt'
@@ -45,9 +48,8 @@ class FiveInaRow:
 
         self.hello_header = b"hello_fir_server"
 
-        self._pygame_init()
+
         self.sounds = dict()
-        self.__pygame_music_init()
         self.grid = None
         self.player = None
         self.other_player = None
@@ -56,6 +58,10 @@ class FiveInaRow:
         self.is_connected = False
         self.is_ready = False
         self.recv_buffer = []
+
+        self._pygame_init()
+        self.__pygame_music_init()
+
 
         if self.mode == self.SERVER:
             self.__init_server()
@@ -73,6 +79,7 @@ class FiveInaRow:
     def _pygame_init(self):
         pygame.init()
         self.clock = pygame.time.Clock()
+        pygame.display.set_caption("Five in a row - {}".format(self.mode_str))
         self.screen = pygame.display.set_mode(self.window_size)
         self.done = False
 
