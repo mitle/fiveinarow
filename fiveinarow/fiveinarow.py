@@ -11,6 +11,7 @@ import socket
 import json
 import sys
 import time
+import os
 
 from fiveinarow.communicator import Communicator, TimeoutException, validate_hostname
 from fiveinarow.game_board import Grid, Board, Player
@@ -60,6 +61,8 @@ class FiveInaRow:
         self.recv_buffer = []
 
         self._pygame_init()
+
+        self.mute = True
         self.__pygame_music_init()
 
 
@@ -72,7 +75,8 @@ class FiveInaRow:
         self.game_is_on = False
         self.board_status = None
 
-        self.sounds['conn'].play()
+        if not self.mute:
+            self.sounds['conn'].play()
 
 
 
@@ -85,11 +89,12 @@ class FiveInaRow:
 
     def __pygame_music_init(self):
         pygame.mixer.init()
-        sound_dir = 'sounds/'
+        sound_dir = 'sounds'
+        self.bg_music_on = not self.mute
 
-        self.sounds['move'] = pygame.mixer.Sound(sound_dir + 'move.ogg')
-        self.sounds['conn'] = pygame.mixer.Sound(sound_dir + 'connected.ogg')
-        self.sounds['end'] = pygame.mixer.Sound(sound_dir + 'game_end3.ogg')
+        self.sounds['move'] = pygame.mixer.Sound(os.path.join(sound_dir, 'move.ogg'))
+        self.sounds['conn'] = pygame.mixer.Sound(os.path.join(sound_dir, 'connected.ogg'))
+        self.sounds['end'] = pygame.mixer.Sound(os.path.join(sound_dir,'game_end3.ogg'))
 
     def set_default_config(self):
         self.conf['numgridx'] = 15
@@ -128,7 +133,7 @@ class FiveInaRow:
             self.__check_config()
 
     def __init_server(self):
-        logging.debug("__init_server()")
+
         self.ip_list = socket.gethostbyname_ex(socket.gethostname())[2]
 
         self.comm = Communicator(mode=self.SERVER)
@@ -160,7 +165,6 @@ class FiveInaRow:
             self.initial_connection()
 
     def __init_client(self):
-        logging.debug("__init_client()")
 
         self.comm = Communicator(mode=self.CLIENT)
 
@@ -365,7 +369,8 @@ class FiveInaRow:
                 continue
 
             if header == 'move':
-                self.sounds['move'].play()
+                if not self.mute:
+                    self.sounds['move'].play()
                 self.__process_move(data, self.other_player.id)
                 continue
 
@@ -396,6 +401,14 @@ class FiveInaRow:
 
         #self.player.turn = False if self.mode == self.SERVER else True
 
+    def __mute_unmute(self):
+        if self.mute:
+            pygame.mixer.music.unpause()
+        else:
+            pygame.mixer.music.pause()
+
+        self.mute = not self.mute
+
     def init_game(self):
         self.grid = Grid(screen=self.screen, clock=self.clock, conf=self.conf)
         self.grid.draw_grid(animate=True)
@@ -403,18 +416,27 @@ class FiveInaRow:
         self.get_other_player()
         self.__recieve_data()
 
-        self.bg_music_on = True
-        pygame.mixer.music.load('sounds/bg_music.ogg')
+        pygame.mixer.music.load(os.path.join('sounds', 'bg_music.ogg'))
         pygame.mixer.music.play(-1)
+        pygame.mixer.music.set_volume(pygame.mixer.music.get_volume() * 0.3)
+        pygame.mixer.music.pause()
+
+        if not self.mute:
+            self.bg_music_on = True
+            pygame.mixer.music.unpause()
+
 
     def start_game(self):
         self.init_game()
+
+        muted_img = pygame.image.load(os.path.join('images', 'muted.png'))
+        muted_img.convert_alpha()
 
         box_dim = (500, 1, 32, 32)
         pb = PushButton(self.screen, dim=box_dim, colors=self.conf['box_colors'], text="new game")
 
         self.game_start_time = time.time()
-        self.game_end_time = time.time()
+        self.game_end_time = None
         self.req_new_game = False
         new_game = False
 
@@ -424,14 +446,15 @@ class FiveInaRow:
                 self.__process_exit_event(event)
                 self.grid.process_event(event)
                 pb.proc_event(event)
-                #if event.type == pygame.KEYDOWN and event.key == pygame.K_a:
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_m:
+                    self.__mute_unmute()
                 #    self.comm.check_echo()
 
             last_move = self.grid.get_gridcoord()
 
             if self.game_is_on:
                 if self.player_on_move(self.player.id):
-                    self.print_text("Your turn", (16,10), color=self.conf['player_colors'][self.player.id])
+                    self.print_text("Your turn", (16, 10), color=self.conf['player_colors'][self.player.id])
                 if last_move is not None:
                     self.__process_move(last_move, self.player.id)
                     self.grid.clear_gridcoord()
@@ -442,9 +465,11 @@ class FiveInaRow:
             if not self.game_is_on and self.board_status is not None:
                 if self.bg_music_on:
                     self.bg_music_on = False
-                    pygame.mixer.music.pause()
                     self.game_end_time = time.time()
-                    self.sounds['end'].play()
+
+                    if not self.mute:
+                        pygame.mixer.music.pause()
+                        self.sounds['end'].play()
 
 
 
@@ -472,17 +497,25 @@ class FiveInaRow:
                     self.game_is_on = True
                     self.game_start_time = time.time()
                     self.board_status = None
-                    pygame.mixer.music.unpause()
+                    if not self.mute:
+                        pygame.mixer.music.unpause()
                     self.bg_music_on = True
+                    self.game_end_time = None
 
             self.print_text("Player: {}".format(self.player.name), (100, 10), color=self.conf['player_colors'][self.player.id])
 
             # print game time
             if self.game_is_on:
                 game_time_text = time.strftime("%M:%S", time.gmtime(time.time()-self.game_start_time))
-            else:
+                self.print_text("{}".format(game_time_text), (292, 615), color=self.conf['textcolor'], fontsize=20,
+                                font='Courier')
+            elif self.game_end_time is not None:
                 game_time_text = time.strftime("%M:%S", time.gmtime(self.game_end_time - self.game_start_time))
-            self.print_text("{}".format(game_time_text), (292, 615), color=self.conf['textcolor'], fontsize=20, font='Courier')
+                self.print_text("{}".format(game_time_text), (292, 615), color=self.conf['textcolor'], fontsize=20, font='Courier')
+
+            if self.mute:
+                self.screen.blit(muted_img, (607, 4))
+
 
             self.grid.draw_grid()
             self.grid.draw_board()
