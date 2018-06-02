@@ -6,7 +6,7 @@ The well known five in a row game implemented in python using pygame. Two player
 
 Python3 required.
 
-clone and run client.py/server.py
+use 'setup.py install' for system wide installation or clone, install required packages with pip, and run client.py/server.py
 
 #### Required packages
 
