@@ -15,6 +15,7 @@ logging.info("Starting server instance")
 while True:
     try:
         fir = FiveInaRow(FiveInaRow.CLIENT)
+        fir.start()
         break
     except TimeoutException:
         pass

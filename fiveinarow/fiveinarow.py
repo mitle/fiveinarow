@@ -30,6 +30,11 @@ class FiveInaRow:
                   'player_colors']
 
     def __init__(self, mode):
+        """
+        Initialises game in given mode. Tries to load configuration.
+        :param mode: server or client mode
+        """
+
         assert(mode in [self.SERVER, self.CLIENT])
 
         self.mode = mode
@@ -65,6 +70,15 @@ class FiveInaRow:
         self.mute = True
         self.__pygame_music_init()
 
+        self.game_is_on = False
+        self.board_status = None
+
+
+    def start(self):
+        """
+        Starts the game init procedure. Initialises communicators, connection, encryption.
+        :return: None
+        """
 
         if self.mode == self.SERVER:
             self.__init_server()
@@ -72,15 +86,17 @@ class FiveInaRow:
             self.ip_isset = False
             self.__init_client()
 
-        self.game_is_on = False
-        self.board_status = None
-
         if not self.mute:
             self.sounds['conn'].play()
 
 
 
     def _pygame_init(self):
+        """
+        Initialises pygame screen.
+        :return: None
+        """
+
         pygame.init()
         self.clock = pygame.time.Clock()
         pygame.display.set_caption("Five in a row - {}".format(self.mode_str))
@@ -88,6 +104,11 @@ class FiveInaRow:
         self.done = False
 
     def __pygame_music_init(self):
+        """
+        Initialises music palyer
+        :return: None
+        """
+
         pygame.mixer.init()
         sound_dir = 'sounds'
         self.bg_music_on = not self.mute
@@ -97,6 +118,11 @@ class FiveInaRow:
         self.sounds['end'] = pygame.mixer.Sound(os.path.join(sound_dir,'game_end3.ogg'))
 
     def set_default_config(self):
+        """
+        Setting default config values.
+        :return: None
+        """
+
         self.conf['numgridx'] = 15
         self.conf['numgridy'] = 15
         self.conf['bgcolor'] = (211, 211, 211)
@@ -117,6 +143,11 @@ class FiveInaRow:
         self.conf['player_colors'] = [(255, 0, 0), (0, 0, 0)]
 
     def __check_config(self):
+        """
+        Checks if the config file contains every needed config values, if one is missing, loads default config.
+        :return: None
+        """
+
         for c in self.config_ids:
             if c not in self.conf:
                 print("Config value missing: {}, using default config".format(c))
@@ -124,15 +155,28 @@ class FiveInaRow:
                 return
 
     def save_config(self):
+        """
+        Saves the configuration to a JSON file.
+        :return:
+        """
         with open(self.config_file_name, 'w') as conf_file:
             json.dump(self.conf, conf_file, sort_keys=True, indent=4)
 
     def load_config(self):
+        """
+        Loads configuration values from JSON file
+        :return: None
+        """
+
         with open(self.config_file_name, 'r') as conf_file:
             self.conf = json.load(conf_file)
             self.__check_config()
 
     def __init_server(self):
+        """
+        Initialises server mode. Prints servers ip addresses.
+        :return:
+        """
 
         self.ip_list = socket.gethostbyname_ex(socket.gethostname())[2]
 
@@ -154,7 +198,7 @@ class FiveInaRow:
                 self.screen.blit(txt_surface, (55, y))
                 y += 32
 
-            self.__recieve_data(encrypted=False)
+            self.__recieve_data()
             self.__process_recieved_data()
 
             pygame.display.flip()
@@ -165,6 +209,10 @@ class FiveInaRow:
             self.initial_connection()
 
     def __init_client(self):
+        """
+        Initialises client mode, asks for servers ip address or hostname.
+        :return: None
+        """
 
         self.comm = Communicator(mode=self.CLIENT)
 
@@ -201,7 +249,7 @@ class FiveInaRow:
                     if time.time() - last_hello > 0.5:
                         last_hello = time.time()
                         self.__say_hello()
-                    self.__recieve_data(encrypted=False)
+                    self.__recieve_data()
                     self.__process_recieved_data()
                 if (time.time() - conn_start) > self.conf['connection_timeout']:
                     self.comm.encomm.llcomm.clear_send_queue()
@@ -215,14 +263,24 @@ class FiveInaRow:
 
 
     def __say_hello(self):
+        """
+        Send a hello message to the partner (server).
+        TODO: Used for checking if connection is alive.
+        :return: None
+        """
+
         self.__send(data=self.hello_header, header='hello')
 
     def __answer_hello(self):
+        """
+        Send answer for the hello message to the partner (client).
+        :return: None
+        """
         self.__send(data=self.hello_header[::-1], header='hello_answer')
 
     def __process_exit_event(self, event):
         """
-        Checks if event is a quit
+        Checks if event is a quit.
         :param event: event from pygame
         :return:
         """
@@ -256,6 +314,15 @@ class FiveInaRow:
         self.screen.blit(txt_surface, textpos)
 
     def print_text(self, text, pos, color=None, font=None, fontsize=16):
+        """
+        Prints text with the given properties to the screen.
+        :param text: the text itself
+        :param pos: position, tuple
+        :param color: text color, tuple (default: 'textcolor' config)
+        :param font: font name, str
+        :param fontsize: font size, number (default: 16)
+        :return: None
+        """
         _font = pygame.font.SysFont(font, fontsize)
         if color is not None:
             textcolor = color
@@ -274,7 +341,7 @@ class FiveInaRow:
 
     def __apply_server_conf(self, recv_conf):
         """
-        Apply selected configuration items recieved from server
+        Apply selected configuration items recieved from server.
         :param recv_conf: configuration dict
         :return: None
         """
@@ -303,9 +370,21 @@ class FiveInaRow:
             self.is_ready = True
 
     def get_other_player(self):
+        """
+        TODO make it a 'partner_request'
+        Sends a request to the partner, to send its players info.
+        :return: None
+        """
+
         self.__send(None, 'get_player')
 
     def player_on_move(self, player_id):
+        """
+        Checks if player is allowed to move.
+        :param player_id:
+        :return: bool, if player is able to move
+        """
+
         if player_id == self.other_player.id and self.other_player.turn:
             return True
         if player_id == self.player.id and self.player.turn:
@@ -314,13 +393,30 @@ class FiveInaRow:
         return False
 
     def next_player(self):
+        """
+        Go to the next player
+        :return: None
+        """
+
         self.player.turn = not self.player.turn
         self.other_player.turn = not self.other_player.turn
 
     def send_request(self, request):
+        """
+        Send a request headered data packet to the partner.
+        :param request: request data
+        :return: None
+        """
         self.__send(request, 'partner_request')
 
     def __process_move(self, pos, player_id):
+        """
+        Checks if move is valid, places on board and updates game- and board status.
+        :param pos: position tuple
+        :param player_id: placing player's id
+        :return: None
+        """
+
         if not self.game_is_on:
             logging.debug('Dropped move {}, game is not on'.format(pos))
             return
@@ -334,25 +430,47 @@ class FiveInaRow:
 
 
     def __send(self, data, header):
+        """
+        Sends data to partner.
+        :param data: data part
+        :param header: header part
+        :return: None
+        """
+
         self.comm.encrypted_send(data, header)
 
     def __recv(self, timeout=0):
+        """
+        Receives data from partner.
+        :param timeout: receive timeout in seconds
+        :return: (data, header), None if nothing was received
+        """
+
         return self.comm.encrypted_recv(timeout=timeout)
 
-    def __recieve_data(self, encrypted=True):
+    def __recieve_data(self):
+        """
+        Receives data and appends it to the receive buffer.
+        :return: None
+        """
+
         data, header = self.__recv(timeout=0)
         if data is not None or header is not None:
             self.recv_buffer.append((data, header))
 
     def __process_recieved_data(self):
+        """
+        If some data is in the receive buffer proccesses it and acts.
+        :return: None
+        """
+
         if len(self.recv_buffer) == 0:
             return
 
         for data, header in self.recv_buffer:
             logging.debug("header: {}".format(header))
             if header is None:
-                print("recieved data without header: ", end='')
-                print(data)
+                logging.debug("recieved data without header: {}".format(data), end='')
                 continue
 
             if header == 'hello':
@@ -402,6 +520,11 @@ class FiveInaRow:
         #self.player.turn = False if self.mode == self.SERVER else True
 
     def __mute_unmute(self):
+        """
+        Toggles (pauses and restarts) background music and mute status.
+        :return: None
+        """
+
         if self.mute:
             pygame.mixer.music.unpause()
         else:
@@ -410,6 +533,11 @@ class FiveInaRow:
         self.mute = not self.mute
 
     def init_game(self):
+        """
+        Initialises game grid, and shows it animated. Gets other players data. Configures background music.
+        :return: None
+        """
+
         self.grid = Grid(screen=self.screen, clock=self.clock, conf=self.conf)
         self.grid.draw_grid(animate=True)
 
@@ -422,11 +550,17 @@ class FiveInaRow:
         pygame.mixer.music.pause()
 
         if not self.mute:
-            self.bg_music_on = True
             pygame.mixer.music.unpause()
+
+        self.bg_music_on = True
 
 
     def start_game(self):
+        """
+        Starts main game loop.
+        :return: None
+        """
+
         self.init_game()
 
         muted_img = pygame.image.load(os.path.join('images', 'muted.png'))
