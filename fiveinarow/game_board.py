@@ -232,3 +232,6 @@ class Player:
         self.points = 0
         self.last_move = None
 
+    def wins(self):
+        self.points += 1
+

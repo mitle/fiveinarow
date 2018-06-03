@@ -425,7 +425,8 @@ class FiveInaRow:
             self.game_is_on, self.board_status, success = self.grid.place(pos, player_id)
             if success:
                 self.next_player()
-                self.__send(pos, 'move')
+                if player_id == self.player.id:
+                    self.__send(pos, 'move')
 
 
 
@@ -448,15 +449,24 @@ class FiveInaRow:
 
         return self.comm.encrypted_recv(timeout=timeout)
 
-    def __recieve_data(self):
+    def __recieve_data(self, timeout=0, retries=0):
         """
         Receives data and appends it to the receive buffer.
+        :param timeout: timeout of each receiving attempt
+        :param retries: number of times to try again, ignored if timeout is 0
         :return: None
         """
 
-        data, header = self.__recv(timeout=0)
-        if data is not None or header is not None:
-            self.recv_buffer.append((data, header))
+        if timeout == 0:
+            tries = 1
+        else:
+            tries = retries + 1
+        while tries > 0:
+            data, header = self.__recv(timeout=timeout)
+            if data is not None or header is not None:
+                self.recv_buffer.append((data, header))
+                return
+            tries -= 1
 
     def __process_recieved_data(self):
         """
@@ -498,7 +508,6 @@ class FiveInaRow:
 
             if header == 'my_player':
                 self.other_player = data
-                self.game_is_on = True
                 continue
 
             if header == 'partner_request':
@@ -509,6 +518,10 @@ class FiveInaRow:
                 if data == 'new_game':
                     self.req_new_game = True
                     self.next_player()
+                    continue
+
+                if data == 'start_game':
+                    self.game_is_on = True
                     continue
 
         self.recv_buffer = []
@@ -529,6 +542,8 @@ class FiveInaRow:
             pygame.mixer.music.unpause()
         else:
             pygame.mixer.music.pause()
+            for key, sound in self.sounds.items():
+                sound.stop()
 
         self.mute = not self.mute
 
@@ -542,7 +557,12 @@ class FiveInaRow:
         self.grid.draw_grid(animate=True)
 
         self.get_other_player()
-        self.__recieve_data()
+        self.__recieve_data(timeout=1, retries=2)
+        self.__process_recieved_data()
+
+        self.send_request('start_game')
+        self.__recieve_data(timeout=1, retries=2)
+        self.__process_recieved_data()
 
         pygame.mixer.music.load(os.path.join('sounds', 'bg_music.ogg'))
         pygame.mixer.music.play(-1)
@@ -600,6 +620,9 @@ class FiveInaRow:
                 if self.bg_music_on:
                     self.bg_music_on = False
                     self.game_end_time = time.time()
+                    if self.player.id == self.board_status[0][1] and self.board_status[1] != (0, 0):
+                        self.player.wins()
+                        self.__send(data=self.player, header='my_player')
 
                     if not self.mute:
                         pygame.mixer.music.pause()
@@ -636,7 +659,13 @@ class FiveInaRow:
                     self.bg_music_on = True
                     self.game_end_time = None
 
-            self.print_text("Player: {}".format(self.player.name), (100, 10), color=self.conf['player_colors'][self.player.id])
+            if self.other_player is not None:
+                self.print_text(
+                    "You are: {me}   {mypoints}:{opponentpoints}   {opponentname}".format(me=self.player.name,
+                                                                                          mypoints=self.player.points,
+                                                                                          opponentname=self.other_player.name,
+                                                                                          opponentpoints=self.other_player.points),
+                    (100, 10), color=self.conf['player_colors'][self.player.id])
 
             # print game time
             if self.game_is_on:
