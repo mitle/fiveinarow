@@ -199,7 +199,7 @@ class FiveInaRow:
                                   title="Port:", default_text="{}".format(port))
 
 
-        pb = PushButton(self.screen, dim=(240, 260, 160, 120), colors=self.conf['box_colors'], text="Start game")
+        pb = PushButton(self.screen, dim=(240, 260, 160, 120), colors=self.conf['box_colors'], text="Start server")
         pb_fist_move = PushButton(self.screen, dim=(260, 50, 50, 30), colors=self.conf['box_colors'], text="first move")
 
         setup_complete = False
@@ -758,7 +758,7 @@ class FiveInaRow:
         new_game = False
 
         while not self.done:
-            #self.screen.fill(self.conf['bgcolor'])
+            self.screen.fill(self.conf['bgcolor'])
             for event in pygame.event.get():
                 self.__process_exit_event(event)
                 self.grid.process_event(event)
@@ -834,11 +834,11 @@ class FiveInaRow:
             # print game time
             if self.game_is_on:
                 game_time_text = time.strftime("%M:%S", time.gmtime(time.time()-self.game_start_time))
-                x=self.print_text("{}".format(game_time_text), (292, 615), color=self.conf['textcolor'], fontsize=20,
+                self.print_text("{}".format(game_time_text), (292, 615), color=self.conf['textcolor'], fontsize=20,
                                 font='Courier')
             elif self.game_end_time is not None:
                 game_time_text = time.strftime("%M:%S", time.gmtime(self.game_end_time - self.game_start_time))
-                x=self.print_text("{}".format(game_time_text), (292, 615), color=self.conf['textcolor'], fontsize=20, font='Courier')
+                self.print_text("{}".format(game_time_text), (292, 615), color=self.conf['textcolor'], fontsize=20, font='Courier')
 
             if self.mute:
                 self.screen.blit(muted_img, (607, 4))

@@ -18,9 +18,18 @@ use 'setup.py install' for system wide installation or clone, install required p
 
 ## Usage and controls
 
-Grid size, number in a row, custom colors and communication port can be configured via the JSON config file (config.txt) editable by any text editor.
+Default values of grid size, number in a row, custom colors and communication port can be configured via the JSON config file (config.txt) editable by any text editor.
 
-After starting both server and client on a local network the server shows the IP address that should be typed in the client.
+
+After starting both server and client on a local network.
+Enter player names.
+You can change board size and port on the server side, or leave the values default. If an invalid value is entered, the input box changes to red color, and can not start server.
+Press start server. The server is now listening for connection.
+
+In the client enter ip address of the server, use <ip>:<port> format if the port was changed from the default. The client will check if the given text is a possible ip address.
+Press start game.
+
+
 Hostname can be entered too, and non-local connections are supported if the client has internet access and the server network has public IP address and correct port forwarding setup.
 Pressing enter will start connection and the game. Starting player can be set up in the instance's python file.
 
@@ -35,6 +44,6 @@ https://docs.google.com/document/d/1TPv9voaPbGxxiek1CzVrvMTqDQRcO5imVPn9ReHwDKI/
 
 ## Snapshots
 ![Alt text](docs/start.png?raw=true)
-![Alt text](docs/game_black-s_turn.png?raw=true)
-![Alt text](docs/game_black_was_stupid_red_wins.png?raw=true)
-![Alt text](docs/requesting_a_new_game.png?raw=true)
+![Alt text](docs/connecting.png?raw=true)
+![Alt text](docs/in_game.png?raw=true)
+![Alt text](docs/game_over.png?raw=true)
