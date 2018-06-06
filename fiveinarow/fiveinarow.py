@@ -183,12 +183,10 @@ class FiveInaRow:
 
         self.ip_list = socket.gethostbyname_ex(socket.gethostname())[2]
 
-        self.comm = Communicator(mode=self.SERVER)
-        self.comm.init_connection(port=self.conf['port'], rsa_key_bits=self.conf['rsakeybits'])
-
         player_name = 'Player'
         numgridx = self.conf['numgridx']
         numgridy = self.conf['numgridy']
+        port = self.conf['port']
 
         name_input_box = TextBox(self.screen, dim=(50, 50, 200, 32), colors=self.conf['box_colors'],
                                  title="Enter player name:")
@@ -196,6 +194,10 @@ class FiveInaRow:
                                   title="Grid size:", default_text="{}".format(numgridx))
         grid_input_boxy = TextBox(self.screen, dim=(120, 150, 32, 32), colors=self.conf['box_colors'],
                                   default_text="{}".format(numgridy))
+
+        port_input_box = TextBox(self.screen, dim=(50, 250, 75, 32), colors=self.conf['box_colors'],
+                                  title="Port:", default_text="{}".format(port))
+
 
         pb = PushButton(self.screen, dim=(240, 260, 160, 120), colors=self.conf['box_colors'], text="Start game")
         pb_fist_move = PushButton(self.screen, dim=(260, 50, 50, 30), colors=self.conf['box_colors'], text="first move")
@@ -211,6 +213,7 @@ class FiveInaRow:
                 grid_input_boxy.proc_event(event)
                 pb.proc_event(event)
                 pb_fist_move.proc_event(event)
+                port_input_box.proc_event(event)
 
 
             name_input_box.draw()
@@ -218,6 +221,12 @@ class FiveInaRow:
             grid_input_boxy.draw()
             pb.draw(setup_complete)
             pb_fist_move.draw(firstmove)
+            port_input_box.draw()
+
+            try:
+                port = int(port_input_box.get_text())
+            except ValueError:
+                port_input_box.mark_invalid()
 
             try:
                 numgridx = int(grid_input_boxx.get_text())
@@ -240,7 +249,7 @@ class FiveInaRow:
             if pb.active():
                 player_name = name_input_box.get_text()
 
-                if grid_input_boxx.is_valid() and grid_input_boxy.is_valid() and name_input_box.is_valid():
+                if grid_input_boxx.is_valid() and grid_input_boxy.is_valid() and name_input_box.is_valid() and port_input_box.is_valid():
                     setup_complete = True
                 pb.active(False)
 
@@ -253,7 +262,10 @@ class FiveInaRow:
         self.set_player(player_name, firstmove)
         self.conf['numgridx'] = numgridx
         self.conf['numgridy'] = numgridy
+        self.conf['port'] = port
 
+        self.comm = Communicator(mode=self.SERVER)
+        self.comm.init_connection(port=self.conf['port'], rsa_key_bits=self.conf['rsakeybits'])
 
         while not self.done and not self.is_connected:
             self.screen.fill(self.conf['bgcolor'])
@@ -270,6 +282,11 @@ class FiveInaRow:
                 txt_surface = self.font.render(ipaddr, True, self.conf['textcolor'])
                 self.screen.blit(txt_surface, (355, y))
                 y += 32
+
+            txt_surface = self.font.render("Port is: ", True, self.conf['textcolor'])
+            self.screen.blit(txt_surface, (300, y))
+            txt_surface = self.font.render("{}".format(self.conf['port']), True, self.conf['textcolor'])
+            self.screen.blit(txt_surface, (355, y+40))
 
             pb.draw(setup_complete)
 
@@ -293,6 +310,9 @@ class FiveInaRow:
 
         box_dim = (50, 50, 200, 32)
         ip_input_box = TextBox(self.screen, dim=box_dim, colors=self.conf['box_colors'], title="Enter host IP address:")
+
+        port = self.conf['port']
+        ip_addr = ''
 
         #player_name = self.player.name if self.player is not None else ''
         player_name = ''
@@ -322,11 +342,23 @@ class FiveInaRow:
 
             if ip_was_active and not ip_input_box.active():
                 ip_was_active = False
-                if not validate_hostname(ip_input_box.get_text()):
+                ipparts = ip_input_box.get_text().split(':')
+                if len(ipparts) not in [1, 2] or not validate_hostname(ipparts[0]):
                     ip_input_box.mark_invalid()
                     ip_isset = False
                 else:
-                    ip_isset = True
+                    ip_addr = ipparts[0]
+                    if len(ipparts) == 2:
+                        try:
+                            port = int(ipparts[1])
+                            ip_isset = True
+                        except ValueError:
+                            ip_input_box.mark_invalid()
+                            ip_isset = False
+                    else:
+                        ip_isset = True
+
+
 
             if pb_fist_move.active():
                 firstmove = not firstmove
@@ -353,7 +385,8 @@ class FiveInaRow:
 
         self.set_player(player_name, firstmove)
 
-        self.ip_addr = ip_input_box.get_text()
+        self.ip_addr = ip_addr
+        self.conf['port'] = port
 
         self.comm.init_connection(port=self.conf['port'], hostname=self.ip_addr)
         conn_start = time.time()

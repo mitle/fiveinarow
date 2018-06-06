@@ -36,7 +36,9 @@ class LLComm:
 
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.PAIR)
-        self.socket.bind("tcp://*:{port}".format(port=self.port))
+        bind_address = "tcp://*:{port}".format(port=self.port)
+        logging.info(bind_address)
+        self.socket.bind(bind_address)
 
     def __init_client(self):
         """
@@ -47,6 +49,7 @@ class LLComm:
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.PAIR)
         server_addr = "tcp://{ip}:{port}".format(ip=self.ip_text, port=self.port)
+        logging.info(server_addr)
         self.socket.connect(server_addr)
 
     def send(self, data, timeout):
