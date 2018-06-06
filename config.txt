@@ -38,8 +38,8 @@
     ],
     "n_to_win": 5,
     "network_timeout": 15,
-    "numgridx": 4,
-    "numgridy": 4,
+    "numgridx": 10,
+    "numgridy": 15,
     "player_colors": [
         [
             255,

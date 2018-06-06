@@ -144,24 +144,51 @@ class Grid:
             self.xboundary += (screen_width - screen_height) / 2
             self.grid_width = self.grid_height
 
+        if self.rows < self.cols:
+            self.squaresize = self.grid_width / self.cols
+            #self.yboundary += (self.rows - self.cols) * self.squaresize
+
+        elif self.rows > self.cols:
+            self.squaresize = self.grid_height / self.rows
+            #self.xboundary += (self.rows - self.cols) * self.squaresize
+            #self.grid_width -= (self.rows - self.cols) * self.squaresize
+            self.rect_diffx = (self.rows - self.cols) * self.squaresize / 2
+            self.rect_diffy = 0
+
+        else:
+            self.squaresize = self.grid_width / self.cols
+
         self.width = 2 if self.bold_grid else 1
 
-        self.squaresize = self.grid_width / self.cols
 
     def draw_grid(self, flush=False, animate=False):
         screen_width, screen_height = self.screen.get_size()
         for r in range(self.rows + 1):
-            pos_y = (self.grid_height / self.rows) * r + self.yboundary
+            pos_y = self.squaresize * r + self.yboundary + self.rect_diffy
+
+            # bounding box
             pos_x_start = self.xboundary
             pos_x_end = screen_width - self.xboundary
+
+            # actual grid
+            pos_x_start += self.rect_diffx
+            pos_x_end -= self.rect_diffx
+
             pygame.draw.line(self.screen, self.gridcolor, (pos_x_start, pos_y), (pos_x_end, pos_y), self.width)
             if animate:
                 pygame.display.flip()
                 self.clock.tick(self.anim_speed)
         for c in range(self.cols + 1):
-            pos_x = (self.grid_width / self.cols) * c + self.xboundary
+            pos_x = self.squaresize * c + self.xboundary + self.rect_diffx
+
+            # bounding box
             pos_y_start = self.yboundary
             pos_y_end = screen_height - self.yboundary
+
+            # actual grid
+            pos_y_start += self.rect_diffy
+            pos_y_end -= self.rect_diffy
+
             pygame.draw.line(self.screen, self.gridcolor, (pos_x, pos_y_start), (pos_x, pos_y_end), self.width)
             if animate:
                 pygame.display.flip()
