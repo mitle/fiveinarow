@@ -247,6 +247,9 @@ class FiveInaRow:
             pygame.display.flip()
             self.clock.tick(25)
 
+        if len(player_name) == 0:
+            player_name = "server's player"
+
         self.set_player(player_name, firstmove)
         self.conf['numgridx'] = numgridx
         self.conf['numgridy'] = numgridy
@@ -344,6 +347,9 @@ class FiveInaRow:
 
             pygame.display.flip()
             self.clock.tick(25)
+
+        if len(player_name) == 0:
+            player_name = "client's player"
 
         self.set_player(player_name, firstmove)
 
