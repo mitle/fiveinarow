@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#  -*- coding: utf-8 -*-
 
 """
 Five in a row game, network dual player mode
@@ -29,11 +28,15 @@ class FiveInaRow:
                   'connection_timeout', 'comm_timeout', 'verbose', 'bold_grid', 'textcolor', 'box_colors',
                   'player_colors']
 
-    def __init__(self, mode):
+    def __init__(self, mode, test=False):
         """
         Initialises game in given mode. Tries to load configuration.
         :param mode: server or client mode
         """
+        if test:
+            self.mode_str = "TEST"
+            self.window_size = (640, 640)
+            return
 
         assert(mode in [self.SERVER, self.CLIENT])
 
@@ -183,20 +186,89 @@ class FiveInaRow:
         self.comm = Communicator(mode=self.SERVER)
         self.comm.init_connection(port=self.conf['port'], rsa_key_bits=self.conf['rsakeybits'])
 
+        player_name = 'Player'
+        numgridx = self.conf['numgridx']
+        numgridy = self.conf['numgridy']
+
+        name_input_box = TextBox(self.screen, dim=(50, 50, 200, 32), colors=self.conf['box_colors'],
+                                 title="Enter player name:")
+        grid_input_boxx = TextBox(self.screen, dim=(50, 150, 32, 32), colors=self.conf['box_colors'],
+                                  title="Grid size:", default_text="{}".format(numgridx))
+        grid_input_boxy = TextBox(self.screen, dim=(120, 150, 32, 32), colors=self.conf['box_colors'],
+                                  default_text="{}".format(numgridy))
+
+        pb = PushButton(self.screen, dim=(240, 260, 160, 120), colors=self.conf['box_colors'], text="Start game")
+        pb_fist_move = PushButton(self.screen, dim=(260, 50, 50, 30), colors=self.conf['box_colors'], text="first move")
+
+        setup_complete = False
+        firstmove = False
+        while not self.done and not setup_complete:
+            self.screen.fill(self.conf['bgcolor'])
+            for event in pygame.event.get():
+                self.__process_exit_event(event)
+                name_input_box.proc_event(event)
+                grid_input_boxx.proc_event(event)
+                grid_input_boxy.proc_event(event)
+                pb.proc_event(event)
+                pb_fist_move.proc_event(event)
+
+
+            name_input_box.draw()
+            grid_input_boxx.draw()
+            grid_input_boxy.draw()
+            pb.draw(setup_complete)
+            pb_fist_move.draw(firstmove)
+
+            try:
+                numgridx = int(grid_input_boxx.get_text())
+                if numgridx > 50:
+                    grid_input_boxx.mark_invalid()
+            except ValueError:
+                grid_input_boxx.mark_invalid()
+
+            try:
+                numgridy = int(grid_input_boxy.get_text())
+                if numgridy > 50:
+                    grid_input_boxy.mark_invalid()
+            except ValueError:
+                grid_input_boxy.mark_invalid()
+
+            if pb_fist_move.active():
+                firstmove = not firstmove
+                pb_fist_move.active(False)
+
+            if pb.active():
+                player_name = name_input_box.get_text()
+
+                if grid_input_boxx.is_valid() and grid_input_boxy.is_valid() and name_input_box.is_valid():
+                    setup_complete = True
+                pb.active(False)
+
+            pygame.display.flip()
+            self.clock.tick(25)
+
+        self.set_player(player_name, firstmove)
+        self.conf['numgridx'] = numgridx
+        self.conf['numgridy'] = numgridy
+
+
         while not self.done and not self.is_connected:
             self.screen.fill(self.conf['bgcolor'])
             for event in pygame.event.get():
                 self.__process_exit_event(event)
+
             self.font = pygame.font.SysFont("Courier New", 24)
             txt_surface = self.font.render("Your IP address is: ", True, self.conf['textcolor'])
-            self.screen.blit(txt_surface, (5, 15))
+            self.screen.blit(txt_surface, (300, 15))
 
             # Render the current text.
             y = 55
             for ipaddr in self.ip_list:
                 txt_surface = self.font.render(ipaddr, True, self.conf['textcolor'])
-                self.screen.blit(txt_surface, (55, y))
+                self.screen.blit(txt_surface, (355, y))
                 y += 32
+
+            pb.draw(setup_complete)
 
             self.__recieve_data()
             self.__process_recieved_data()
@@ -216,47 +288,90 @@ class FiveInaRow:
 
         self.comm = Communicator(mode=self.CLIENT)
 
-        box_dim = (50, 50, 140, 32)
-        input_box = TextBox(self.screen, dim=box_dim, colors=self.conf['box_colors'], title="Enter host IP address:")
+        box_dim = (50, 50, 200, 32)
+        ip_input_box = TextBox(self.screen, dim=box_dim, colors=self.conf['box_colors'], title="Enter host IP address:")
+
+        #player_name = self.player.name if self.player is not None else ''
+        player_name = ''
+        name_input_box = TextBox(self.screen, dim=(50, 150, 200, 32), colors=self.conf['box_colors'],
+                                 title="Enter player name:", default_text=player_name)
+
+        pb = PushButton(self.screen, dim=(240, 260, 160, 120), colors=self.conf['box_colors'], text="Start game")
+        pb_fist_move = PushButton(self.screen, dim=(260, 150, 50, 30), colors=self.conf['box_colors'], text="first move")
+
+        setup_complete = False
+        ip_was_active = False
+        ip_isset = False
+        firstmove = False
+        while not self.done and not setup_complete:
+            self.screen.fill(self.conf['bgcolor'])
+            for event in pygame.event.get():
+                self.__process_exit_event(event)
+                name_input_box.proc_event(event)
+                pb.proc_event(event)
+                pb_fist_move.proc_event(event)
+                ip_input_box.proc_event(event)
+
+            if not ip_was_active:
+                ip_was_active = ip_input_box.active()
+            if ip_input_box.active():
+                ip_input_box.mark_valid()
+
+            if ip_was_active and not ip_input_box.active():
+                ip_was_active = False
+                if not validate_hostname(ip_input_box.get_text()):
+                    ip_input_box.mark_invalid()
+                    ip_isset = False
+                else:
+                    ip_isset = True
+
+            if pb_fist_move.active():
+                firstmove = not firstmove
+                pb_fist_move.active(False)
+
+            name_input_box.draw()
+            pb.draw(setup_complete)
+            pb_fist_move.draw(firstmove)
+            ip_input_box.draw()
+
+            if pb.active():
+                player_name = name_input_box.get_text()
+                if ip_isset and name_input_box.is_valid():
+                    setup_complete = True
+                if not ip_isset:
+                    ip_input_box.mark_invalid()
+                pb.active(False)
+
+            pygame.display.flip()
+            self.clock.tick(25)
+
+        self.set_player(player_name, firstmove)
+
+        self.ip_addr = ip_input_box.get_text()
+
+        self.comm.init_connection(port=self.conf['port'], hostname=self.ip_addr)
+        conn_start = time.time()
+
+        self.__say_hello()
+        last_hello = time.time()
 
         while not self.done and not self.is_ready:
             self.screen.fill(self.conf['bgcolor'])
             for event in pygame.event.get():
                 self.__process_exit_event(event)
-                if not self.ip_isset:
-                    text = input_box.proc_event(event)
-                    if text is not None:
-                        logging.debug("input text: " + text)
-                        if validate_hostname(text):
-                            self.ip_isset = True
-                            self.ip_addr = text
 
-                            self.print_connecting()
-                            pygame.display.flip()
-
-                            self.comm.init_connection(port=self.conf['port'], hostname=self.ip_addr)
-
-                            self.__say_hello()
-                            last_hello = conn_start = time.time()
-                        else:
-                            logging.warning("invalid ip address or unresolvable hostname")
-
-            if self.ip_isset:
-                self.print_connecting()
-                if self.is_connected:
-                    self.initial_connection()
-                else:
-                    if time.time() - last_hello > 0.5:
-                        last_hello = time.time()
-                        self.__say_hello()
-                    self.__recieve_data()
-                    self.__process_recieved_data()
-                if (time.time() - conn_start) > self.conf['connection_timeout']:
-                    self.comm.encomm.llcomm.clear_send_queue()
-                    raise TimeoutException
-
+            self.print_connecting()
+            if self.is_connected:
+                self.initial_connection()
             else:
-                input_box.draw()
+                if time.time() - last_hello > 0.5:
+                    last_hello = time.time()
+                    self.__say_hello()
+                self.__recieve_data()
+                self.__process_recieved_data()
+            if (time.time() - conn_start) > self.conf['connection_timeout']:
+                self.comm.encomm.llcomm.clear_send_queue()
+                raise TimeoutException
 
             pygame.display.flip()
             self.clock.tick(25)
@@ -564,6 +679,15 @@ class FiveInaRow:
         self.__recieve_data(timeout=1, retries=2)
         self.__process_recieved_data()
 
+        if self.player.turn == self.other_player.turn:
+            if self.mode == self.SERVER:
+                self.player.turn = not self.player.turn
+                self.__send(data=self.player, header='my_player')
+            else:
+                self.__recieve_data(timeout=1, retries=2)
+                self.__process_recieved_data()
+
+
         pygame.mixer.music.load(os.path.join('sounds', 'bg_music.ogg'))
         pygame.mixer.music.play(-1)
         pygame.mixer.music.set_volume(pygame.mixer.music.get_volume() * 0.3)
@@ -649,6 +773,7 @@ class FiveInaRow:
 
                 if self.req_new_game and new_game:
                     new_game = False
+                    self.send_request('next_player')
                     self.req_new_game = False
                     self.grid.board.clear()
                     self.game_is_on = True

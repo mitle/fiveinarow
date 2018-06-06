@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 """
@@ -48,6 +47,6 @@ class PushButton:
         self.pushbutton.w = width
 
         # Blit the text.
-        self.screen.blit(txt_surface, (self.pushbutton.x + 5, self.pushbutton.y + 5))
+        self.screen.blit(txt_surface, (self.pushbutton.x + 5, self.pushbutton.y + self.dim[3]/2 - 9))
 
 

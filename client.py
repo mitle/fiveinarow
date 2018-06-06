@@ -20,5 +20,4 @@ while True:
     except TimeoutException:
         pass
 
-fir.set_player('Levi')
 fir.start_game()
