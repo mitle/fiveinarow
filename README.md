@@ -43,7 +43,7 @@ Anytime during the game pressing M key will toggle mute of all sounds.
 https://docs.google.com/document/d/1TPv9voaPbGxxiek1CzVrvMTqDQRcO5imVPn9ReHwDKI/edit?usp=sharing
 
 ## Snapshots
-![Alt text](docs/start.png?raw=true)
+![Alt text](docs/config.png?raw=true)
 ![Alt text](docs/connecting.png?raw=true)
 ![Alt text](docs/in_game.png?raw=true)
 ![Alt text](docs/game_over.png?raw=true)
