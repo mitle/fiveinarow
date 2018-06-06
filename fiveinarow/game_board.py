@@ -130,64 +130,80 @@ class Grid:
         self.bold_grid = self.conf['bold_grid']
         self.colors = self.conf['player_colors']
 
-        self.xboundary = 30
-        self.yboundary = 30
+        xboundary = 30
+        yboundary = 30
         screen_width, screen_height = self.screen.get_size()
-        self.grid_height = screen_height - 2 * self.yboundary
-        self.grid_width = screen_width - 2 * self.xboundary
 
-        if self.grid_width < self.grid_height:
-            self.yboundary += (screen_height - screen_width) / 2
-            self.grid_height = self.grid_width
+        grid_bbh = screen_height - 2 * yboundary  # grid Bounding Box Height
+        grid_bbw = screen_width - 2 * xboundary
 
-        elif self.grid_width > screen_height:
-            self.xboundary += (screen_width - screen_height) / 2
-            self.grid_width = self.grid_height
+        self.squaresize = min((grid_bbw / self.cols, grid_bbh / self.rows))
 
-        if self.rows < self.cols:
-            self.squaresize = self.grid_width / self.cols
-            #self.yboundary += (self.rows - self.cols) * self.squaresize
+        # tries to fit grid at best in the window
+        if self.cols / self.rows > 1:
+            if grid_bbw / grid_bbh > 1:
+                if self.cols / self.rows > grid_bbw / grid_bbh:
+                    self.grid_offset = (0, (grid_bbh - self.rows * self.squaresize) / 2)
+                else:
+                    self.grid_offset = ((grid_bbw - self.cols * self.squaresize) / 2, 0)
+            elif grid_bbw / grid_bbh < 1:
+                self.grid_offset = (0, (grid_bbh - grid_bbw + (self.cols - self.rows) * self.squaresize) / 2)
+            else:
+                self.grid_offset = (0, (self.cols - self.rows) * self.squaresize / 2)
 
-        elif self.rows > self.cols:
-            self.squaresize = self.grid_height / self.rows
-            #self.xboundary += (self.rows - self.cols) * self.squaresize
-            #self.grid_width -= (self.rows - self.cols) * self.squaresize
-            self.rect_diffx = (self.rows - self.cols) * self.squaresize / 2
-            self.rect_diffy = 0
+        elif self.cols / self.rows < 1:
+            if grid_bbw / grid_bbh > 1:
+                self.grid_offset = ((grid_bbw - grid_bbh + (self.rows - self.cols) * self.squaresize) / 2, 0)
+            elif grid_bbw / grid_bbh < 1:
+                if self.cols / self.rows > grid_bbw / grid_bbh:
+                    self.grid_offset = (0, (grid_bbh - self.rows * self.squaresize) / 2)
+                else:
+                    self.grid_offset = ((grid_bbw - self.cols * self.squaresize) / 2, 0)
+            else:
+                self.grid_offset = ((self.rows - self.cols) * self.squaresize / 2, 0)
 
         else:
-            self.squaresize = self.grid_width / self.cols
+            if grid_bbw / grid_bbh > 1:
+                self.grid_offset = ((grid_bbw - grid_bbh) / 2, 0)
+            elif grid_bbw / grid_bbh < 1:
+                self.grid_offset = (0, (grid_bbh - grid_bbw) / 2)
+            else:
+                self.grid_offset = (0, 0)
 
         self.width = 2 if self.bold_grid else 1
 
+        grid_height = self.squaresize * self.rows
+        grid_width = self.squaresize * self.cols
+
+        self.grid_size = (grid_width, grid_height)
+
+        self.grid_rect = (xboundary + self.grid_offset[0], yboundary + self.grid_offset[1],
+                          xboundary + self.grid_offset[0] + grid_width, yboundary + self.grid_offset[1] + grid_height)
 
     def draw_grid(self, flush=False, animate=False):
-        screen_width, screen_height = self.screen.get_size()
+        """
+        Draws the game grid from individual lines.
+        :param flush: whether update the screen at end
+        :param animate: whwther update screen after each drawn line
+        :return: None
+        """
+
         for r in range(self.rows + 1):
-            pos_y = self.squaresize * r + self.yboundary + self.rect_diffy
+            pos_y = self.squaresize * r + self.grid_rect[1]
 
-            # bounding box
-            pos_x_start = self.xboundary
-            pos_x_end = screen_width - self.xboundary
-
-            # actual grid
-            pos_x_start += self.rect_diffx
-            pos_x_end -= self.rect_diffx
+            pos_x_start = self.grid_rect[0]
+            pos_x_end = self.grid_rect[2]
 
             pygame.draw.line(self.screen, self.gridcolor, (pos_x_start, pos_y), (pos_x_end, pos_y), self.width)
             if animate:
                 pygame.display.flip()
                 self.clock.tick(self.anim_speed)
+
         for c in range(self.cols + 1):
-            pos_x = self.squaresize * c + self.xboundary + self.rect_diffx
+            pos_x = self.squaresize * c + self.grid_rect[0]
 
-            # bounding box
-            pos_y_start = self.yboundary
-            pos_y_end = screen_height - self.yboundary
-
-            # actual grid
-            pos_y_start += self.rect_diffy
-            pos_y_end -= self.rect_diffy
+            pos_y_start = self.grid_rect[1]
+            pos_y_end = self.grid_rect[3]
 
             pygame.draw.line(self.screen, self.gridcolor, (pos_x, pos_y_start), (pos_x, pos_y_end), self.width)
             if animate:
@@ -198,17 +214,29 @@ class Grid:
             pygame.display.flip()
 
     def process_event(self, event):
+        """
+        Processes event for grid click, stores click coordinates
+        :param event: pygame event
+        :return: None
+        """
+
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             self.gridcoord = self.get_clicked_cell(event.pos)
 
     def get_clicked_cell(self, event_pos):
-        posx = event_pos[0] - self.xboundary
-        posy = event_pos[1] - self.yboundary
+        """
+        Calculates grid coorfinates from window coordinates
+        :param event_pos: position tuple of the mouse click
+        :return: grid coordinates if click was over the grid else None
+        """
 
-        if posx < 0 or self.grid_width < posx:
-            return
-        if posy < 0 or self.grid_height < posy:
-            return
+        posx = event_pos[0] - self.grid_rect[0]
+        posy = event_pos[1] - self.grid_rect[1]
+
+        if posx < 0 or self.grid_size[0] < posx:
+            return None
+        if posy < 0 or self.grid_size[1] < posy:
+            return None
 
         x = int(posx / self.squaresize)
         y = int(posy / self.squaresize)
@@ -222,14 +250,26 @@ class Grid:
         self.gridcoord = None
 
     def draw_board(self):
+        """
+        Draws all the players previous moves on the screen
+        :return: None
+        """
+
         for pos in self.board.get_occupied():
             player_id = self.board.get_player_id(pos)
             self.__draw_move(pos, player_id)
 
 
     def __draw_move(self, pos, player_id):
-        pos_x = int(self.xboundary + pos[0] * self.squaresize + self.squaresize/2)
-        pos_y = int(self.yboundary + pos[1] * self.squaresize + self.squaresize/2)
+        """
+        Draws a single moves marker
+        :param pos:  grid coordinates
+        :param player_id: player id for color lookup
+        :return: None
+        """
+
+        pos_x = int(self.grid_rect[0] + pos[0] * self.squaresize + self.squaresize/2)
+        pos_y = int(self.grid_rect[1] + pos[1] * self.squaresize + self.squaresize/2)
         markersize = int((self.squaresize*0.7)/2 )
 
         color = self.colors[player_id]
