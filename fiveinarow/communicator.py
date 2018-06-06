@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 """
@@ -29,6 +28,11 @@ def validate_hostname(hostname):
 
     if len(hostname) < 4:
         return False
+    try:
+        int(hostname)
+        return False
+    except ValueError:
+        pass
     ip_str = get_ip_from_hostname(hostname)
     if ip_str is not None:
         return True
