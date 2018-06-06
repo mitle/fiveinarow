@@ -193,9 +193,9 @@ class Grid:
             pos_x_start = self.grid_rect[0]
             pos_x_end = self.grid_rect[2]
 
-            pygame.draw.line(self.screen, self.gridcolor, (pos_x_start, pos_y), (pos_x_end, pos_y), self.width)
+            x = pygame.draw.line(self.screen, self.gridcolor, (pos_x_start, pos_y), (pos_x_end, pos_y), self.width)
             if animate:
-                pygame.display.flip()
+                pygame.display.update(x)
                 self.clock.tick(self.anim_speed)
 
         for c in range(self.cols + 1):
@@ -204,13 +204,13 @@ class Grid:
             pos_y_start = self.grid_rect[1]
             pos_y_end = self.grid_rect[3]
 
-            pygame.draw.line(self.screen, self.gridcolor, (pos_x, pos_y_start), (pos_x, pos_y_end), self.width)
+            x = pygame.draw.line(self.screen, self.gridcolor, (pos_x, pos_y_start), (pos_x, pos_y_end), self.width)
             if animate:
-                pygame.display.flip()
+                pygame.display.update(x)
                 self.clock.tick(self.anim_speed)
 
         if flush:
-            pygame.display.flip()
+            pygame.display.update()
 
     def process_event(self, event):
         """

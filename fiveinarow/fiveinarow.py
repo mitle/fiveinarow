@@ -253,8 +253,8 @@ class FiveInaRow:
                     setup_complete = True
                 pb.active(False)
 
-            pygame.display.flip()
-            self.clock.tick(25)
+            pygame.display.update()
+            self.clock.tick(15)
 
         if len(player_name) == 0:
             player_name = "server's player"
@@ -293,12 +293,12 @@ class FiveInaRow:
             self.__recieve_data()
             self.__process_recieved_data()
 
-            pygame.display.flip()
-            self.clock.tick(25)
+            if self.is_connected:
+                self.print_connected()
+                self.initial_connection()
 
-        if self.is_connected:
-            self.print_connected()
-            self.initial_connection()
+            pygame.display.update()
+            self.clock.tick(15)
 
     def __init_client(self):
         """
@@ -377,8 +377,8 @@ class FiveInaRow:
                     ip_input_box.mark_invalid()
                 pb.active(False)
 
-            pygame.display.flip()
-            self.clock.tick(25)
+            pygame.display.update()
+            self.clock.tick(15)
 
         if len(player_name) == 0:
             player_name = "client's player"
@@ -412,8 +412,8 @@ class FiveInaRow:
                 self.comm.encomm.llcomm.clear_send_queue()
                 raise TimeoutException
 
-            pygame.display.flip()
-            self.clock.tick(25)
+            pygame.display.update()
+            self.clock.tick(15)
 
 
     def __say_hello(self):
@@ -758,7 +758,7 @@ class FiveInaRow:
         new_game = False
 
         while not self.done:
-            self.screen.fill(self.conf['bgcolor'])
+            #self.screen.fill(self.conf['bgcolor'])
             for event in pygame.event.get():
                 self.__process_exit_event(event)
                 self.grid.process_event(event)
@@ -834,11 +834,11 @@ class FiveInaRow:
             # print game time
             if self.game_is_on:
                 game_time_text = time.strftime("%M:%S", time.gmtime(time.time()-self.game_start_time))
-                self.print_text("{}".format(game_time_text), (292, 615), color=self.conf['textcolor'], fontsize=20,
+                x=self.print_text("{}".format(game_time_text), (292, 615), color=self.conf['textcolor'], fontsize=20,
                                 font='Courier')
             elif self.game_end_time is not None:
                 game_time_text = time.strftime("%M:%S", time.gmtime(self.game_end_time - self.game_start_time))
-                self.print_text("{}".format(game_time_text), (292, 615), color=self.conf['textcolor'], fontsize=20, font='Courier')
+                x=self.print_text("{}".format(game_time_text), (292, 615), color=self.conf['textcolor'], fontsize=20, font='Courier')
 
             if self.mute:
                 self.screen.blit(muted_img, (607, 4))
@@ -847,6 +847,7 @@ class FiveInaRow:
             self.grid.draw_grid()
             self.grid.draw_board()
 
-            pygame.display.flip()
-            self.clock.tick(25)
+            pygame.display.update()
+            self.clock.tick(15)
+
 
